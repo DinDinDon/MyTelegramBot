@@ -57,6 +57,7 @@ public class Main {
                 response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 count = js.getResult().get(0).getUpdate_id() + 1;
             }
+            wait();
 
 
 //		 print status code
