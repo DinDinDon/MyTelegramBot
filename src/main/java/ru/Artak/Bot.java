@@ -26,7 +26,7 @@ public class Bot {
     }
 
 
-//    StringBuilder builder = new StringBuilder();
+
 
     void sendGET() throws IOException, InterruptedException {
         HttpRequest request = null;
