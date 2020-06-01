@@ -16,19 +16,17 @@ public class Bot {
             .version(HttpClient.Version.HTTP_1_1)
             .build();
 
-    ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
 
     private final Object lock = new Object();
 
-    public Bot() {
-
-    }
 
 
 
 
-    void sendGET() throws IOException, InterruptedException {
+
+    void sendGet() throws IOException, InterruptedException {
         HttpRequest request = null;
         Integer previousUpteId = 0;
         while (true) {
@@ -52,7 +50,9 @@ public class Bot {
                     response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                     previousUpteId = updateId;
 
-                } else lock.wait(500);
+                } else{
+                    lock.wait(500);
+                }
 
 
             }
