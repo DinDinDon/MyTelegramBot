@@ -21,10 +21,7 @@ public class Bot {
             .build();
 
     private final ObjectMapper mapper = new ObjectMapper();
-
-
     private final Object lock = new Object();
-
 
     void sendGet() throws IOException, InterruptedException {
         HttpRequest request = null;
@@ -43,29 +40,33 @@ public class Bot {
                 String text = js.getResult().get(0).getMessage().getText();
 
                 if (updateId > previousUpteId) {
-                    if (text.equals("/auth")) {
-                        request = HttpRequest.newBuilder()
-                                .GET()
-                                .uri(URI.create(ADRESS + "/" + TOKEN + "/sendMessage?chat_id=" +
-                                        chatId + "&text=" + URLEncoder.encode("https://www.strava.com/oauth/authorize?client_id=46301&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=activity:read", StandardCharsets.UTF_8)))
-                                .build();
-                        response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                        String authorizationCode;
-                        request = HttpRequest.newBuilder()
-                                .uri(URI.create("https://www.strava.com/oauth/token?client_id=46301&client_secret=671832cb5403c96630b8a3facc66d9953b06fd1a&code=796ced353d845aadca99f81d943bc8a207825e82&grant_type=authorization_code"))
-                                .header("Authorization", "Bearer 671832cb5403c96630b8a3facc66d9953b06fd1a ")
-                                .POST(noBody())
-                                .build();
-                        response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                        System.out.println(response.statusCode());
-                        Strava strava = mapper.readValue(response.body(), Strava.class);
+                    switch (text) {
+                        case "/auth":
+                            request = HttpRequest.newBuilder()
+                                    .GET()
+                                    .uri(URI.create(ADRESS + "/" + TOKEN + "/sendMessage?chat_id=" +
+                                            chatId + "&text=" + URLEncoder.encode(Strava.ADRESS + "authorize?client_id=46301&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=activity:read", StandardCharsets.UTF_8)))
+                                    .build();
+                            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                            //пока ручками ставлю
+                            String authorizationCode = "b4dc2d4819d5b39e78eeea5d0bc0c1daffe1eda3";
+                            request = HttpRequest.newBuilder()
+                                    .uri(URI.create(Strava.ADRESS + "token?client_id=46301&client_secret=" + Strava.SECRET + "&code=" + authorizationCode + "&grant_type=authorization_code"))
+                                    .header("Authorization", "Bearer " + Strava.SECRET)
+                                    .POST(noBody())
+                                    .build();
+                            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                            System.out.println(response.statusCode());
+                            Strava strava = mapper.readValue(response.body(), Strava.class);
 
-                    } else {
-                        request = HttpRequest.newBuilder()
-                                .GET()
-                                .uri(URI.create(ADRESS + "/" + TOKEN + "/sendMessage?chat_id=" +
-                                        chatId + "&text=" + URLEncoder.encode("Для начало работы выберите  /auth", StandardCharsets.UTF_8)))
-                                .build();
+                            break;
+                        default:
+                            request = HttpRequest.newBuilder()
+                                    .GET()
+                                    .uri(URI.create(ADRESS + "/" + TOKEN + "/sendMessage?chat_id=" +
+                                            chatId + "&text=" + URLEncoder.encode("Для начало работы выберите  /auth", StandardCharsets.UTF_8)))
+                                    .build();
+                            break;
                     }
                     response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                     headers = response.headers();

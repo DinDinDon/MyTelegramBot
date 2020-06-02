@@ -5,8 +5,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Strava {
     private final int ID = 46301;
-    private final String SECRET = "671832cb5403c96630b8a3facc66d9953b06fd1a";
+    public static final String SECRET = "671832cb5403c96630b8a3facc66d9953b06fd1a";
+    public static final String ADRESS = "https://www.strava.com/oauth/";
     private String refresh_token;
+    //действует 6 часов
     private String access_token;
     private Athlete athlete;
 
@@ -33,14 +35,5 @@ public class Strava {
         return athlete;
     }
 
-    public void setAthlete(Athlete athlete) {
-        this.athlete = athlete;
-    }
 
-    @Override
-    public String toString() {
-        return "Strava{" +
-                "athlete=" + athlete +
-                '}';
-    }
 }

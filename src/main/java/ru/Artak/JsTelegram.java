@@ -19,15 +19,5 @@ public class JsTelegram {
         return result;
     }
 
-    public void setResult(List<Result> result) {
-        this.result = result;
-    }
-
-    @Override
-    public String toString() {
-        return "JsTelegram{" +
-                "result=" + result +
-                '}';
-    }
 
 }
