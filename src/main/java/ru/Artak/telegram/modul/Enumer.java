@@ -1,4 +1,4 @@
-package ru.Artak;
+package ru.Artak.telegram.modul;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

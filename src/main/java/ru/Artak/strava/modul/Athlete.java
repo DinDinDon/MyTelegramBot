@@ -1,11 +1,15 @@
-package ru.Artak;
+package ru.Artak.strava.modul;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Athlete {
+
     private int id;
+    @JsonProperty("firstname")
     private String firstName;
+    @JsonProperty("lastname")
     private String lastName;
     private String city;
     private String country;
