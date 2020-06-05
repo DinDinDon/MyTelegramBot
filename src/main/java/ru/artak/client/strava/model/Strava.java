@@ -1,14 +1,18 @@
-package ru.Artak.strava.modul;
+package ru.artak.client.strava.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import ru.Artak.strava.modul.Athlete;
+import ru.artak.client.strava.Athlete;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Strava {
+    
+    // TODO перенести в StravaClient, получив переменные через main(String[] args), передавая в конструктор
     private final int ID = 46301;
     public static final String SECRET = "671832cb5403c96630b8a3facc66d9953b06fd1a";
     public static final String ADRESS = "https://www.strava.com/oauth/";
+    
     private String refresh_token;
+    
     //действует 6 часов
     private String access_token;
     private Athlete athlete;

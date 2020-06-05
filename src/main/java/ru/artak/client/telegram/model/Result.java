@@ -1,19 +1,20 @@
-package ru.Artak.telegram.modul;
+package ru.artak.client.telegram.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import ru.Artak.telegram.modul.Message;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Result {
-
-    private Integer update_id;
+    
+    @JsonProperty("update_id")
+    private Integer updateId;
     private Message message;
 
     public Result() {
     }
 
-    public Integer getUpdate_id() {
-        return update_id;
+    public Integer getUpdateId() {
+        return updateId;
     }
 
 

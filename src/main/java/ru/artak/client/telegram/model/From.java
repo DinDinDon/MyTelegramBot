@@ -1,15 +1,15 @@
-package ru.Artak.telegram.modul;
+package ru.artak.client.telegram.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Chat {
+public class From {
+    
     private Integer id;
     private String first_name;
     private String last_name;
-    private Enumer type;
 
-    public Chat() {
+    public From() {
     }
 
     public Integer getId() {
@@ -23,9 +23,4 @@ public class Chat {
     public String getLast_name() {
         return last_name;
     }
-
-    public Enumer getType() {
-        return type;
-    }
-
 }

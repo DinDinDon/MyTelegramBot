@@ -1,9 +1,7 @@
-package ru.Artak.telegram.modul;
+package ru.artak.client.telegram.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import ru.Artak.telegram.modul.Chat;
-import ru.Artak.telegram.modul.From;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Message {

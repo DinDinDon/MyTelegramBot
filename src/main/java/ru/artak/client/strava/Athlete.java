@@ -1,4 +1,4 @@
-package ru.Artak.strava.modul;
+package ru.artak.client.strava;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
