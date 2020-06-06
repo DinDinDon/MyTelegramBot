@@ -42,10 +42,22 @@ public class BotHttpServer {
             byte[] bytes = "GREAT, YOU ARE AUTHORIZED. StravaBot".getBytes();
             exchange.sendResponseHeaders(200, bytes.length);
     
-            // TODO кажется надо обернуть в try-catch и close сделать в final
-            OutputStream os = exchange.getResponseBody();
-            os.write(bytes);
-            os.close();
+
+            OutputStream os = null;
+            try {
+                os = exchange.getResponseBody();
+                os.write(bytes);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+                try {
+                    if(os!=null)
+                    os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
         }
     }
 }

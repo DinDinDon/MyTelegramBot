@@ -7,16 +7,17 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class TelegramClient {
-	
-	// TODO получить переменные через main(String[] args), передавая в конструктор
-	public static final String TELEGRAM_TOKEN = "bot1263503443:AAG5Dz5XzWNjscLVjgl_kDEJqLx4zUlcJy8";
+
+
+	public static  String telegramToken;
 	public static final String TELEGRAM_BASE_URL = "https://api.telegram.org";
 	
 	private final HttpClient httpClient =
 		HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
 	
 	
-	public TelegramClient() {
+	public TelegramClient(String token) {
+		this.telegramToken = token;
 	}
 	
 	// TODO реализовать метод
