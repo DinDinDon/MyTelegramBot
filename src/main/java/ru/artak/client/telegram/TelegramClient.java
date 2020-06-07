@@ -19,8 +19,8 @@ public class TelegramClient {
 
 
     public static final String TELEGRAM_BASE_URL = "https://api.telegram.org";
-    public static String telegramToken;
     private final ObjectMapper mapper = new ObjectMapper();
+    public String telegramToken;
 
 
     private final HttpClient httpClient =
@@ -51,7 +51,7 @@ public class TelegramClient {
 
 
     public URI getWeekDistanceUrl(Integer chatId) {
-        URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + "/" + TelegramClient.telegramToken + "/sendMessage?chat_id=" +
+        URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken + "/sendMessage?chat_id=" +
                 chatId + "&text=" + URLEncoder.encode("Скоро здесь что-то будет!", StandardCharsets.UTF_8));
         return telegramDefaultResponseUrl;
     }
