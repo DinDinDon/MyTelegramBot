@@ -8,6 +8,7 @@ import java.net.http.HttpResponse;
 
 public class TelegramClient {
 
+
     public static final String TELEGRAM_BASE_URL = "https://api.telegram.org";
     public static String telegramToken;
 
@@ -30,5 +31,6 @@ public class TelegramClient {
 
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
+
 
 }
