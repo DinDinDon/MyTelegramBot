@@ -1,4 +1,4 @@
-package ru.artak.client.strava.model;
+package ru.artak.client.strava;
 
 public class StravaCredential {
 	

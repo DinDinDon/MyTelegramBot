@@ -1,7 +1,6 @@
 package ru.artak.client.strava.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import ru.artak.client.strava.Athlete;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Strava {
