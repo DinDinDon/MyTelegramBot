@@ -28,7 +28,7 @@ public class TelegramClient {
         this.telegramToken = telegramToken;
     }
 
-    // TODO реализовать метод
+
     public GetUpdateTelegram getUpdates() throws IOException, InterruptedException {
         URI telegramGetUpdateUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken +
                 "/getUpdates" +
@@ -57,7 +57,7 @@ public class TelegramClient {
     }
 
 
-    public HttpResponse<String> sendMessage(URI uri) throws IOException, InterruptedException {
+    private HttpResponse<String> sendMessage(URI uri) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
 
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());

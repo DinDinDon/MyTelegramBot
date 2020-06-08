@@ -24,7 +24,6 @@ public class TelegramService {
     private GetUpdateTelegram getUpdateTelegram;
 
 
-
     // почитай про Dependency injection
     public TelegramService(TelegramClient telegramClient, Storage storage) {
         this.telegramClient = telegramClient;
@@ -34,12 +33,9 @@ public class TelegramService {
     public void sendGet() throws IOException, InterruptedException {
         final String randomClientID = UUID.randomUUID().toString().replace("-", "");
 
-        // почитай про UUID: UUID.randomUUID()
-
         Integer previousUpdateId = 0;
         while (true) {
             synchronized (lock) {
-                // TODO вынести сборку URI в TelegramClient и использовать метод getUpdates()
                 getUpdateTelegram = telegramClient.getUpdates();
                 // TODO сделать обработку всех сообщений, а не только первого (...get(0)), использовать закомментированный  ниже код
 //				List<TelegramUserInfo> updateIds = new ArrayList<>();
@@ -79,18 +75,14 @@ public class TelegramService {
     }
 
     private void handleWeekDistance(Integer chatId, String telegramWeekDistanceText) throws IOException, InterruptedException {
-        // TODO вынести сборку URI в TelegramClient
         telegramClient.sendSimpleText(chatId, telegramWeekDistanceText);
     }
 
     private void handleDefaultCommand(Integer chatId, String telegramBotStartText) throws IOException, InterruptedException {
-        // TODO вынести сборку URI в TelegramClient
         telegramClient.sendSimpleText(chatId, telegramBotStartText);
     }
 
     private void handleAuthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
-        // TODO вынести сборку URI в TelegramClient
-
         storage.saveStateForUser(randomClientID, chatId);
 
         telegramClient.sendOauthCommand(randomClientID, chatId);
