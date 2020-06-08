@@ -1,16 +1,23 @@
 package ru.artak.client.telegram;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import ru.artak.client.strava.StravaClient;
+import ru.artak.client.telegram.model.GetUpdateTelegram;
+
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 
 public class TelegramClient {
 
 
     public static final String TELEGRAM_BASE_URL = "https://api.telegram.org";
-    public static String telegramToken;
+    private final ObjectMapper mapper = new ObjectMapper();
+    public String telegramToken;
 
 
     private final HttpClient httpClient =
@@ -21,12 +28,36 @@ public class TelegramClient {
         this.telegramToken = telegramToken;
     }
 
-    // TODO реализовать метод
-    public void getUpdates() {
+
+    public GetUpdateTelegram getUpdates() throws IOException, InterruptedException {
+        URI telegramGetUpdateUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken +
+                "/getUpdates" +
+                "?offset=-1");
+        HttpResponse<String> telegramGetUpdateResponse = sendMessage(telegramGetUpdateUrl);
+        GetUpdateTelegram getUpdateTelegram = mapper.readValue(telegramGetUpdateResponse.body(), GetUpdateTelegram.class);
+
+        return getUpdateTelegram;
+    }
+
+
+    public void sendSimpleText(Integer chatId, String commandText) throws IOException, InterruptedException {
+        URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken + "/sendMessage?chat_id=" +
+                chatId + "&text=" + URLEncoder.encode(commandText, StandardCharsets.UTF_8));
+        sendMessage(telegramDefaultResponseUrl);
 
     }
 
-    public HttpResponse<String> sendMessage(URI uri) throws IOException, InterruptedException {
+
+    public void sendOauthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
+        URI oauthUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken + "/sendMessage?chat_id=" + chatId + "&text="
+                + URLEncoder.encode(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
+                StravaClient.stravaClientId + "&state=" + randomClientID + "&response_type=code&redirect_uri=http://localhost:8080" +
+                "/exchange_token&approval_prompt=force&&scope=activity:read", StandardCharsets.UTF_8));
+        sendMessage(oauthUrl);
+    }
+
+
+    private HttpResponse<String> sendMessage(URI uri) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
 
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
