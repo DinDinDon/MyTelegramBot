@@ -1,19 +1,12 @@
 package ru.artak.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.client.telegram.model.GetUpdateTelegram;
 import ru.artak.storage.Storage;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Random;
 import java.util.UUID;
-
-import static ru.artak.client.telegram.TelegramClient.TELEGRAM_BASE_URL;
 
 public class TelegramService {
 
@@ -25,7 +18,11 @@ public class TelegramService {
 
     private final Storage storage;
 
+    private final String telegramBotDefaultText = "Для начало работы выберите  /auth";
+    private final String telegramWeekDistanceText = "Скоро здесь что-то будет!";
+
     private GetUpdateTelegram getUpdateTelegram;
+
 
 
     // почитай про Dependency injection
@@ -66,11 +63,11 @@ public class TelegramService {
                             handleAuthCommand(randomClientID, chatId);
                             break;
                         case "/weekDistance":
-                            handleWeekDistance(chatId);
+                            handleWeekDistance(chatId, telegramWeekDistanceText);
                             // TODO получить количество километров которые набегал за календарную неделю
                             break;
                         default:
-                            handleDefaultCommand(chatId);
+                            handleDefaultCommand(chatId, telegramBotDefaultText);
                             break;
                     }
                     previousUpdateId = updateId;
@@ -81,14 +78,14 @@ public class TelegramService {
         }
     }
 
-    private void handleWeekDistance(Integer chatId) throws IOException, InterruptedException {
+    private void handleWeekDistance(Integer chatId, String telegramWeekDistanceText) throws IOException, InterruptedException {
         // TODO вынести сборку URI в TelegramClient
-        telegramClient.sendMessage(telegramClient.getWeekDistanceUrl(chatId));
+        telegramClient.sendSimpleText(chatId, telegramWeekDistanceText);
     }
 
-    private void handleDefaultCommand(Integer chatId) throws IOException, InterruptedException {
+    private void handleDefaultCommand(Integer chatId, String telegramBotStartText) throws IOException, InterruptedException {
         // TODO вынести сборку URI в TelegramClient
-        telegramClient.sendMessage(telegramClient.getDefaultTelegramUri(chatId));
+        telegramClient.sendSimpleText(chatId, telegramBotStartText);
     }
 
     private void handleAuthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
@@ -96,7 +93,7 @@ public class TelegramService {
 
         storage.saveStateForUser(randomClientID, chatId);
 
-        telegramClient.sendMessage(telegramClient.getAuthCommandUrl(randomClientID, chatId));
+        telegramClient.sendOauthCommand(randomClientID, chatId);
     }
 
 }
