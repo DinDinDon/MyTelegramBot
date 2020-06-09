@@ -39,6 +39,7 @@ public class Main {
 
         TelegramService telegramService = new TelegramService(telegramClient, inMemoryStorage);
         telegramService.sendGet();
+
     }
 }
 

@@ -7,6 +7,7 @@ import ru.artak.storage.Storage;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class TelegramService {
 
@@ -20,35 +21,26 @@ public class TelegramService {
 
     private final String telegramWeekDistanceText = "Скоро здесь что-то будет!";
 
-    private GetUpdateTelegram getUpdateTelegram;
-
-
-
-
-    // почитай про Dependency injection
     public TelegramService(TelegramClient telegramClient, Storage storage) {
         this.telegramClient = telegramClient;
         this.storage = storage;
     }
 
     public void sendGet() throws IOException, InterruptedException {
-
         final String randomClientID = UUID.randomUUID().toString().replace("-", "");
-
-        Integer telegramOfset = 0;
-
+        Integer telegramOffset = 0;
 
         while (true) {
             synchronized (lock) {
-                getUpdateTelegram = telegramClient.getUpdates(telegramOfset);
+                GetUpdateTelegram getUpdateTelegram = telegramClient.getUpdates(telegramOffset);
 
-                List<TelegramUserInfo> updateIds = telegramClient.getAllTelegramUpdateUsers(getUpdateTelegram);
+                List<TelegramUserInfo> updateIds = getAllTelegramUpdateUsers(getUpdateTelegram);
 
-                for (int i = 0; i < updateIds.size(); i++) {
+                for (TelegramUserInfo id : updateIds) {
                     Integer lastUpdateId = getUpdateTelegram.getResult().get(getUpdateTelegram.getResult().size() - 1).getUpdateId();
-                    Integer updateId = updateIds.get(i).getUpdateId();
-                    Integer chatId = updateIds.get(i).getChatId();
-                    String text = updateIds.get(i).getText();
+                    Integer updateId = id.getUpdateId();
+                    Integer chatId = id.getChatId();
+                    String text = id.getText();
 
                     if (updateId <= lastUpdateId) {
                         switch (text) {
@@ -63,13 +55,10 @@ public class TelegramService {
                                 handleDefaultCommand(chatId, telegramBotDefaultText);
                                 break;
                         }
-
                     }
-                    telegramOfset = lastUpdateId;
+                    telegramOffset = lastUpdateId;
                 }
                 lock.wait(500);
-
-
             }
         }
     }
@@ -86,6 +75,17 @@ public class TelegramService {
         storage.saveStateForUser(randomClientID, chatId);
 
         telegramClient.sendOauthCommand(randomClientID, chatId);
+
+    }
+
+    private List<TelegramUserInfo> getAllTelegramUpdateUsers(GetUpdateTelegram getUpdateTelegram) {
+        return getUpdateTelegram.getResult().stream()
+                .map(result ->
+                        new TelegramUserInfo(
+                                result.getMessage().getChat().getId(),
+                                result.getMessage().getText(),
+                                result.getUpdateId()))
+                .collect(Collectors.toList());
     }
 
 }

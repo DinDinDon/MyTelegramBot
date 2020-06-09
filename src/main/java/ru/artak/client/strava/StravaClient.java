@@ -13,4 +13,16 @@ public class StravaClient {
         this.stravaClientId = stravaClientId;
         this.stravaSecret = stravaSecret;
     }
+
+
+//    private void get(){
+//        HttpRequest requestPostStrava = HttpRequest.newBuilder()
+//                .uri(URI.create(Strava.ADRESS + "token?client_id=46301&client_secret=" + stravaSecret + "&code=" + authorizationCode + "&grant_type=authorization_code"))
+//                .header("Authorization", "Bearer " + Strava.SECRET)
+//                .POST(noBody())
+//                .build();
+//        HttpResponse<String> stravaAccessToken = httpClient.send(requestPostStrava, HttpResponse.BodyHandlers.ofString());
+//
+//        Strava strava = mapper.readValue(stravaAccessToken.body(), Strava.class);
+//    }
 }
