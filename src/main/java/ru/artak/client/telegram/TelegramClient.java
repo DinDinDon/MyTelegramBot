@@ -3,6 +3,8 @@ package ru.artak.client.telegram;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.model.GetUpdateTelegram;
+import ru.artak.client.telegram.model.Result;
+import ru.artak.service.TelegramUserInfo;
 
 import java.io.IOException;
 import java.net.URI;
@@ -11,12 +13,16 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TelegramClient {
 
 
     public static final String TELEGRAM_BASE_URL = "https://api.telegram.org";
+
     private final ObjectMapper mapper = new ObjectMapper();
+
     public String telegramToken;
 
 
@@ -29,14 +35,23 @@ public class TelegramClient {
     }
 
 
-    public GetUpdateTelegram getUpdates() throws IOException, InterruptedException {
+    public GetUpdateTelegram getUpdates(Integer offset) throws IOException, InterruptedException {
         URI telegramGetUpdateUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken +
-                "/getUpdates" +
-                "?offset=-1");
+                "/getUpdates?offset=" + (offset + 1));
         HttpResponse<String> telegramGetUpdateResponse = sendMessage(telegramGetUpdateUrl);
         GetUpdateTelegram getUpdateTelegram = mapper.readValue(telegramGetUpdateResponse.body(), GetUpdateTelegram.class);
 
         return getUpdateTelegram;
+    }
+
+    public List<TelegramUserInfo> getAllTelegramUpdateUsers(GetUpdateTelegram getUpdateTelegram) {
+        List<TelegramUserInfo> allTelegramUsers = new ArrayList<>();
+        for (Result result : getUpdateTelegram.getResult()) {
+            TelegramUserInfo telegramUserInfo =
+                    new TelegramUserInfo(result.getMessage().getChat().getId(), result.getMessage().getText(), result.getUpdateId());
+            allTelegramUsers.add(telegramUserInfo);
+        }
+        return allTelegramUsers;
     }
 
 
