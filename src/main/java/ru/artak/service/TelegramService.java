@@ -1,16 +1,15 @@
 package ru.artak.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.client.telegram.model.GetUpdateTelegram;
 import ru.artak.storage.Storage;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class TelegramService {
-
-    private final ObjectMapper mapper = new ObjectMapper();
 
     private final Object lock = new Object();
 
@@ -19,12 +18,9 @@ public class TelegramService {
     private final Storage storage;
 
     private final String telegramBotDefaultText = "Для начало работы выберите  /auth";
+
     private final String telegramWeekDistanceText = "Скоро здесь что-то будет!";
 
-    private GetUpdateTelegram getUpdateTelegram;
-
-
-    // почитай про Dependency injection
     public TelegramService(TelegramClient telegramClient, Storage storage) {
         this.telegramClient = telegramClient;
         this.storage = storage;
@@ -32,44 +28,37 @@ public class TelegramService {
 
     public void sendGet() throws IOException, InterruptedException {
         final String randomClientID = UUID.randomUUID().toString().replace("-", "");
+        Integer telegramOffset = 0;
 
-        Integer previousUpdateId = 0;
         while (true) {
             synchronized (lock) {
-                getUpdateTelegram = telegramClient.getUpdates();
-                // TODO сделать обработку всех сообщений, а не только первого (...get(0)), использовать закомментированный  ниже код
-//				List<TelegramUserInfo> updateIds = new ArrayList<>();
-//				for (Result result : getUpdateTelegram.getResult()) {
-//					TelegramUserInfo telegramUserInfo =
-//						new TelegramUserInfo(result.getMessage().getChat().getId(), result.getMessage().getText());
-//					updateIds.add(telegramUserInfo);
-//				}
+                GetUpdateTelegram getUpdateTelegram = telegramClient.getUpdates(telegramOffset);
 
-                Integer updateId = getUpdateTelegram.getResult().get(0).getUpdateId();
-                Integer chatId = getUpdateTelegram.getResult().get(0).getMessage().getChat().getId();
-                String text = getUpdateTelegram.getResult().get(0).getMessage().getText();
+                List<TelegramUserInfo> updateIds = getAllTelegramUpdateUsers(getUpdateTelegram);
 
+                for (TelegramUserInfo id : updateIds) {
+                    Integer lastUpdateId = getUpdateTelegram.getResult().get(getUpdateTelegram.getResult().size() - 1).getUpdateId();
+                    Integer updateId = id.getUpdateId();
+                    Integer chatId = id.getChatId();
+                    String text = id.getText();
 
-                // TODO сравнивать с updateId последнего
-//				Integer lastUpdateId = getUpdateTelegram.getResult().get(getUpdateTelegram.getResult().size()-1).getUpdateId();
-
-                if (updateId > previousUpdateId) {
-                    switch (text) {
-                        case "/auth":
-                            handleAuthCommand(randomClientID, chatId);
-                            break;
-                        case "/weekDistance":
-                            handleWeekDistance(chatId, telegramWeekDistanceText);
-                            // TODO получить количество километров которые набегал за календарную неделю
-                            break;
-                        default:
-                            handleDefaultCommand(chatId, telegramBotDefaultText);
-                            break;
+                    if (updateId <= lastUpdateId) {
+                        switch (text) {
+                            case "/auth":
+                                handleAuthCommand(randomClientID, chatId);
+                                break;
+                            case "/weekDistance":
+                                handleWeekDistance(chatId, telegramWeekDistanceText);
+                                // TODO получить количество километров которые набегал за календарную неделю
+                                break;
+                            default:
+                                handleDefaultCommand(chatId, telegramBotDefaultText);
+                                break;
+                        }
                     }
-                    previousUpdateId = updateId;
-                } else {
-                    lock.wait(500);
+                    telegramOffset = lastUpdateId;
                 }
+                lock.wait(500);
             }
         }
     }
@@ -86,6 +75,17 @@ public class TelegramService {
         storage.saveStateForUser(randomClientID, chatId);
 
         telegramClient.sendOauthCommand(randomClientID, chatId);
+
+    }
+
+    private List<TelegramUserInfo> getAllTelegramUpdateUsers(GetUpdateTelegram getUpdateTelegram) {
+        return getUpdateTelegram.getResult().stream()
+                .map(result ->
+                        new TelegramUserInfo(
+                                result.getMessage().getChat().getId(),
+                                result.getMessage().getText(),
+                                result.getUpdateId()))
+                .collect(Collectors.toList());
     }
 
 }

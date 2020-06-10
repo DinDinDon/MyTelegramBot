@@ -1,34 +1,36 @@
 package ru.artak.client.strava.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Strava {
 
-
-    private String refresh_token;
+    @JsonProperty("refresh_token")
+    private String refreshToken;
 
     //действует 6 часов
-    private String access_token;
+    @JsonProperty("access_token")
+    private String accessToken;
     private Athlete athlete;
 
     public Strava() {
     }
 
-    public String getRefresh_token() {
-        return refresh_token;
+    public String getRefreshToken() {
+        return refreshToken;
     }
 
-    public void setRefresh_token(String refresh_token) {
-        this.refresh_token = refresh_token;
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
-    public String getAccess_token() {
-        return access_token;
+    public String getAccessToken() {
+        return accessToken;
     }
 
-    public void setAccess_token(String access_token) {
-        this.access_token = access_token;
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
     }
 
     public Athlete getAthlete() {
