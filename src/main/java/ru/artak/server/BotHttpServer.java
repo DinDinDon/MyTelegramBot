@@ -25,7 +25,9 @@ public class BotHttpServer {
         server.start();
     }
 
-    static class EchoHandler implements HttpHandler {
+
+    private class EchoHandler implements HttpHandler {
+
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -37,15 +39,29 @@ public class BotHttpServer {
             String state = spliterState[1];
             String authorizationCode = spliterAuthorizationCode[1];
 
-            // TODO вызвать stravaService.stravaService(...)
+            try {
+                stravaService.obtainCredentials(state, authorizationCode);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             byte[] bytes = "GREAT, YOU ARE AUTHORIZED. StravaBot".getBytes();
             exchange.sendResponseHeaders(200, bytes.length);
 
-
-            OutputStream os = exchange.getResponseBody();
-            os.write(bytes);
-            os.close();
+            OutputStream os = null;
+            try {
+                os = exchange.getResponseBody();
+                os.write(bytes);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    if (os != null)
+                        os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

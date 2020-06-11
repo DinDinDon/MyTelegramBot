@@ -53,6 +53,7 @@ public class TelegramClient {
         sendMessage(oauthUrl);
     }
 
+
     private HttpResponse<String> sendMessage(URI uri) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
 

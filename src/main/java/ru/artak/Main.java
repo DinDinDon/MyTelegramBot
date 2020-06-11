@@ -6,6 +6,7 @@ import ru.artak.server.BotHttpServer;
 import ru.artak.service.StravaService;
 import ru.artak.service.TelegramService;
 import ru.artak.storage.InMemoryStorage;
+
 import java.io.IOException;
 import java.util.UUID;
 
@@ -13,7 +14,6 @@ import java.util.UUID;
 public class Main {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-
 
 
         String telegramToken = args[0];
@@ -25,7 +25,7 @@ public class Main {
 
         InMemoryStorage inMemoryStorage = InMemoryStorage.getInstance();
 
-        StravaService stravaService = new StravaService(telegramClient, inMemoryStorage);
+        StravaService stravaService = new StravaService(telegramClient, inMemoryStorage, stravaClient);
         BotHttpServer botHttpServer = new BotHttpServer(stravaService);
 
         Thread httpServerThread = new Thread(() -> {
