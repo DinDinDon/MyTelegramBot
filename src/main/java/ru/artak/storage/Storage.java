@@ -12,9 +12,4 @@ public interface Storage {
 
     StravaCredential getStravaCredentials(Integer chatId);
 
-    Integer getLastChatId();
-
-    String getAuthorizationCode(String state);
-
-    public void saveAuthorizationCodeForUser(String state, String authorizationCode);
 }

@@ -8,10 +8,10 @@ public class StravaOauthResp {
 
     @JsonProperty("refresh_token")
     private String refreshToken;
-
-    //действует 6 часов
     @JsonProperty("access_token")
     private String accessToken;
+    @JsonProperty("expires_at")
+    private long expiresAt;
 
     public StravaOauthResp() {
     }
@@ -32,4 +32,7 @@ public class StravaOauthResp {
         this.accessToken = accessToken;
     }
 
+    public long getExpiresAt() {
+        return expiresAt;
+    }
 }

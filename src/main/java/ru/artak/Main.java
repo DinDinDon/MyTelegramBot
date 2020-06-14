@@ -23,7 +23,7 @@ public class Main {
         InMemoryStorage inMemoryStorage = InMemoryStorage.getInstance();
 
         StravaService stravaService = new StravaService(telegramClient, inMemoryStorage, stravaClient);
-        BotHttpServer botHttpServer = new BotHttpServer(stravaService, inMemoryStorage);
+        BotHttpServer botHttpServer = new BotHttpServer(stravaService);
 
         Thread httpServerThread = new Thread(() -> {
             try {

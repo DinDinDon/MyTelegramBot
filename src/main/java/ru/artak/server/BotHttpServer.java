@@ -14,11 +14,8 @@ public class BotHttpServer {
 
     private final StravaService stravaService;
 
-    private final Storage storage;
-
-    public BotHttpServer(StravaService stravaService, Storage storage) {
+    public BotHttpServer(StravaService stravaService) {
         this.stravaService = stravaService;
-        this.storage = storage;
     }
 
     public void run() throws IOException {
@@ -42,31 +39,23 @@ public class BotHttpServer {
             String[] spliterAuthorizationCode = spliterQuery[1].split("=");
             String state = spliterState[1];
             String authorizationCode = spliterAuthorizationCode[1];
-
-            byte[] bytes = new byte[2048];
+            String text = "";
 
             if (state != null && authorizationCode != null) {
                 try {
-                    storage.saveAuthorizationCodeForUser(state, authorizationCode);
                     stravaService.obtainCredentials(state, authorizationCode);
-                    bytes = "GREAT, YOU ARE AUTHORIZED. StravaBot".getBytes();
+                    text = "GREAT, YOU ARE AUTHORIZED. StravaBot";
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             } else {
-                try {
-                    stravaService.sendFailedAuthorizedText();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                bytes = "Authorization failed. StravaBot".getBytes();
-
+                text = "Authorization failed. StravaBot";
             }
-            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.sendResponseHeaders(200, text.getBytes().length);
             OutputStream os = null;
             try {
                 os = exchange.getResponseBody();
-                os.write(bytes);
+                os.write(text.getBytes());
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
