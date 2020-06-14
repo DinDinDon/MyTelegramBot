@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import ru.artak.service.StravaService;
+import ru.artak.storage.Storage;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -13,8 +14,11 @@ public class BotHttpServer {
 
     private final StravaService stravaService;
 
-    public BotHttpServer(StravaService stravaService) {
+    private final Storage storage;
+
+    public BotHttpServer(StravaService stravaService, Storage storage) {
         this.stravaService = stravaService;
+        this.storage = storage;
     }
 
     public void run() throws IOException {
@@ -39,15 +43,26 @@ public class BotHttpServer {
             String state = spliterState[1];
             String authorizationCode = spliterAuthorizationCode[1];
 
-            try {
-                stravaService.obtainCredentials(state, authorizationCode);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            byte[] bytes = new byte[2048];
+
+            if (state != null && authorizationCode != null) {
+                try {
+                    storage.saveAuthorizationCodeForUser(state, authorizationCode);
+                    stravaService.obtainCredentials(state, authorizationCode);
+                    bytes = "GREAT, YOU ARE AUTHORIZED. StravaBot".getBytes();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                try {
+                    stravaService.sendFailedAuthorizedText();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                bytes = "Authorization failed. StravaBot".getBytes();
+
             }
-
-            byte[] bytes = "GREAT, YOU ARE AUTHORIZED. StravaBot".getBytes();
             exchange.sendResponseHeaders(200, bytes.length);
-
             OutputStream os = null;
             try {
                 os = exchange.getResponseBody();

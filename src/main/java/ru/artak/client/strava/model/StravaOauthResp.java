@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Strava {
+public class StravaOauthResp {
 
     @JsonProperty("refresh_token")
     private String refreshToken;
@@ -12,9 +12,8 @@ public class Strava {
     //действует 6 часов
     @JsonProperty("access_token")
     private String accessToken;
-    private Athlete athlete;
 
-    public Strava() {
+    public StravaOauthResp() {
     }
 
     public String getRefreshToken() {
@@ -32,10 +31,5 @@ public class Strava {
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
     }
-
-    public Athlete getAthlete() {
-        return athlete;
-    }
-
 
 }

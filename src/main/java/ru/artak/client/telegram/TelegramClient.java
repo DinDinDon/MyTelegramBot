@@ -19,16 +19,16 @@ public class TelegramClient {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public String telegramToken;
-
     private final HttpClient httpClient =
             HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
 
+    private String telegramToken;
+    private StravaClient stravaClient;
 
-    public TelegramClient(String telegramToken) {
+    public TelegramClient(String telegramToken, StravaClient stravaClient) {
         this.telegramToken = telegramToken;
+        this.stravaClient = stravaClient;
     }
-
 
     public GetUpdateTelegram getUpdates(Integer offset) throws IOException, InterruptedException {
         URI telegramGetUpdateUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken +
@@ -48,11 +48,10 @@ public class TelegramClient {
     public void sendOauthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
         URI oauthUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken + "/sendMessage?chat_id=" + chatId + "&text="
                 + URLEncoder.encode(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
-                StravaClient.stravaClientId + "&state=" + randomClientID + "&response_type=code&redirect_uri=http://localhost:8080" +
+                stravaClient.getStravaClientId() + "&state=" + randomClientID + "&response_type=code&redirect_uri=http://localhost:8080" +
                 "/exchange_token&approval_prompt=force&&scope=activity:read", StandardCharsets.UTF_8));
         sendMessage(oauthUrl);
     }
-
 
     private HttpResponse<String> sendMessage(URI uri) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
