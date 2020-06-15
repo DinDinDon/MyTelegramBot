@@ -4,7 +4,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import ru.artak.service.StravaService;
-import ru.artak.storage.Storage;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,11 +35,11 @@ public class BotHttpServer {
         public void handle(HttpExchange exchange) throws IOException {
             String state = null;
             String authorizationCode = null;
-            if(getStravaOauthResponse(exchange).containsKey("state"))
-                state = getStravaOauthResponse(exchange).get("state");
+            if(getStateAndAuthCode(exchange).containsKey("state"))
+                state = getStateAndAuthCode(exchange).get("state");
 
-            if(getStravaOauthResponse(exchange).containsKey("code"))
-             authorizationCode = getStravaOauthResponse(exchange).get("code");
+            if(getStateAndAuthCode(exchange).containsKey("code"))
+             authorizationCode = getStateAndAuthCode(exchange).get("code");
 
             String text = "Authorization failed. StravaBot";
 
@@ -57,7 +56,7 @@ public class BotHttpServer {
 
         }
 
-        private Map<String,String> getStravaOauthResponse(HttpExchange exchange){
+        private Map<String,String> getStateAndAuthCode(HttpExchange exchange){
             Map<String,String> stravaOauthResponse = new ConcurrentHashMap<>();
             String query = exchange.getRequestURI().getQuery();
 
