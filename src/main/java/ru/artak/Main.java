@@ -18,7 +18,7 @@ public class Main {
         Integer stravaClientId = Integer.valueOf(args[2]);
 
         StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret);
-        TelegramClient telegramClient = new TelegramClient(telegramToken, stravaClient);
+        TelegramClient telegramClient = new TelegramClient(telegramToken, stravaClientId);
 
         InMemoryStorage inMemoryStorage = InMemoryStorage.getInstance();
 

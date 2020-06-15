@@ -23,16 +23,15 @@ public class StravaService {
     }
 
     public void obtainCredentials(String state, String authorizationCode) throws IOException, InterruptedException {
-        StravaOauthResp strava = null;
-        try {
-            strava = stravaClient.getStravaCredentials(authorizationCode);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+
+        StravaOauthResp strava = stravaClient.getStravaCredentials(authorizationCode);
+
+        String accessToken = strava.getAccessToken();
+        String refreshToken = strava.getRefreshToken();
+        Long expiresAt = strava.getExpiresAt();
+        StravaCredential stravaCredential = new StravaCredential(accessToken, refreshToken, expiresAt);
+
         Integer chatID = storage.getChatIdByState(state);
-        StravaCredential stravaCredential = new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
         storage.saveStravaCredentials(chatID, stravaCredential);
         telegramClient.sendSimpleText(chatID, AUTHORIZED_TEXT);
     }

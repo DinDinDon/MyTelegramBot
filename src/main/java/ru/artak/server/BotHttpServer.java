@@ -9,6 +9,8 @@ import ru.artak.storage.Storage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BotHttpServer {
 
@@ -32,14 +34,15 @@ public class BotHttpServer {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String query = exchange.getRequestURI().getQuery();
+            String state = null;
+            String authorizationCode = null;
+            if(getStravaOauthResponse(exchange).containsKey("state"))
+                state = getStravaOauthResponse(exchange).get("state");
 
-            String[] spliterQuery = query.split("&");
-            String[] spliterState = spliterQuery[0].split("=");
-            String[] spliterAuthorizationCode = spliterQuery[1].split("=");
-            String state = spliterState[1];
-            String authorizationCode = spliterAuthorizationCode[1];
-            String text = "";
+            if(getStravaOauthResponse(exchange).containsKey("code"))
+             authorizationCode = getStravaOauthResponse(exchange).get("code");
+
+            String text = "Authorization failed. StravaBot";
 
             if (state != null && authorizationCode != null) {
                 try {
@@ -48,9 +51,30 @@ public class BotHttpServer {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-            } else {
-                text = "Authorization failed. StravaBot";
             }
+
+            writeResponse(exchange,text);
+
+        }
+
+        private Map<String,String> getStravaOauthResponse(HttpExchange exchange){
+            Map<String,String> stravaOauthResponse = new ConcurrentHashMap<>();
+            String query = exchange.getRequestURI().getQuery();
+
+            String[] spliterQuery = query.split("&");
+            String[] spliterState = spliterQuery[0].split("=");
+            String[] spliterAuthorizationCode = spliterQuery[1].split("=");
+
+            if(spliterState.length >=2)
+                stravaOauthResponse.put(spliterState[0], spliterState[1]);
+
+            if(spliterAuthorizationCode.length >= 2 )
+            stravaOauthResponse.put(spliterAuthorizationCode[0],spliterAuthorizationCode[1]);
+
+            return  stravaOauthResponse;
+        }
+
+        private void writeResponse(HttpExchange exchange, String text) throws IOException {
             exchange.sendResponseHeaders(200, text.getBytes().length);
             OutputStream os = null;
             try {
@@ -67,5 +91,7 @@ public class BotHttpServer {
                 }
             }
         }
+
     }
+
 }
