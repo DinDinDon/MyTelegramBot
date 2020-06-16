@@ -4,12 +4,12 @@ public class StravaCredential {
 
     private final String accessToken;
     private final String refreshToken;
-    private final Long timeToUpdate;
+    private final Long timeToExpired;
 
     public StravaCredential(String accessToken, String refreshToken, Long timeToUpdate) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
-        this.timeToUpdate = timeToUpdate;
+        this.timeToExpired = timeToUpdate;
     }
 
     public String getAccessToken() {
@@ -20,8 +20,8 @@ public class StravaCredential {
         return refreshToken;
     }
 
-    public Long getTimeToUpdate() {
-        return timeToUpdate;
+    public Long getTimeToExpired() {
+        return timeToExpired;
     }
 
 }

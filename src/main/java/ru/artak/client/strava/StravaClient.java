@@ -26,10 +26,6 @@ public class StravaClient {
         this.stravaSecret = stravaSecret;
     }
 
-    public int getStravaClientId() {
-        return stravaClientId;
-    }
-
     public StravaOauthResp getStravaCredentials(String authorizationCode) throws IOException, InterruptedException {
         HttpRequest requestPostStrava = HttpRequest.newBuilder()
                 .uri(URI.create(STRAVA_OAUTH_ADDRESS + "token?client_id=" + stravaClientId + "&client_secret=" + stravaSecret + "&code=" +

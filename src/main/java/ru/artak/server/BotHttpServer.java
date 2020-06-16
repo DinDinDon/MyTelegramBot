@@ -3,13 +3,17 @@ package ru.artak.server;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import org.apache.commons.lang3.StringUtils;
 import ru.artak.service.StravaService;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class BotHttpServer {
 
@@ -27,50 +31,45 @@ public class BotHttpServer {
         server.start();
     }
 
-
     private class EchoHandler implements HttpHandler {
-
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            Map<String, String> map = getStateAndAuthCode(exchange);
             String state = null;
             String authorizationCode = null;
-            if(getStateAndAuthCode(exchange).containsKey("state"))
-                state = getStateAndAuthCode(exchange).get("state");
+            if (map.containsKey("state")) {
+                state = map.get("state");
+            }
 
-            if(getStateAndAuthCode(exchange).containsKey("code"))
-             authorizationCode = getStateAndAuthCode(exchange).get("code");
+            if (map.containsKey("code")) {
+                authorizationCode = map.get("code");
+            }
 
             String text = "Authorization failed. StravaBot";
 
-            if (state != null && authorizationCode != null) {
+            if (!StringUtils.isBlank(state) && !StringUtils.isBlank(authorizationCode)) {
                 try {
                     stravaService.obtainCredentials(state, authorizationCode);
                     text = "GREAT, YOU ARE AUTHORIZED. StravaBot";
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-
-            writeResponse(exchange,text);
-
+            writeResponse(exchange, text);
         }
 
-        private Map<String,String> getStateAndAuthCode(HttpExchange exchange){
-            Map<String,String> stravaOauthResponse = new ConcurrentHashMap<>();
+        private Map<String, String> getStateAndAuthCode(HttpExchange exchange) {
+            Map<String, String> map = new HashMap<>();
             String query = exchange.getRequestURI().getQuery();
-
             String[] spliterQuery = query.split("&");
-            String[] spliterState = spliterQuery[0].split("=");
-            String[] spliterAuthorizationCode = spliterQuery[1].split("=");
 
-            if(spliterState.length >=2)
-                stravaOauthResponse.put(spliterState[0], spliterState[1]);
+            for (int i = 0; i < spliterQuery.length; i++) {
+                String[] s = spliterQuery[i].split("=");
+                map.put(s[0], s[1]);
+            }
 
-            if(spliterAuthorizationCode.length >= 2 )
-            stravaOauthResponse.put(spliterAuthorizationCode[0],spliterAuthorizationCode[1]);
-
-            return  stravaOauthResponse;
+            return map;
         }
 
         private void writeResponse(HttpExchange exchange, String text) throws IOException {
