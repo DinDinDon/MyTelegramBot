@@ -34,8 +34,8 @@ public class StravaService {
     private StravaCredential getCredentials(String authorizationCode) {
         try {
             StravaOauthResp strava = stravaClient.getStravaCredentials(authorizationCode);
-            return new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
 
+            return new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("no date from StravaAPI");
         }

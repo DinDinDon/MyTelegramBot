@@ -35,17 +35,9 @@ public class BotHttpServer {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            Map<String, String> map = getStateAndAuthCode(exchange);
-            String state = null;
-            String authorizationCode = null;
-            if (map.containsKey("state")) {
-                state = map.get("state");
-            }
-
-            if (map.containsKey("code")) {
-                authorizationCode = map.get("code");
-            }
-
+            Map<String, String> stateAndAuthCode = getStateAndAuthCode(exchange);
+            String state = stateAndAuthCode.get("state");
+            String authorizationCode = stateAndAuthCode.get("code");
             String text = "Authorization failed. StravaBot";
 
             if (!StringUtils.isBlank(state) && !StringUtils.isBlank(authorizationCode)) {
@@ -64,8 +56,8 @@ public class BotHttpServer {
             String query = exchange.getRequestURI().getQuery();
             String[] spliterQuery = query.split("&");
 
-            for (int i = 0; i < spliterQuery.length; i++) {
-                String[] s = spliterQuery[i].split("=");
+            for (String value : spliterQuery) {
+                String[] s = value.split("=");
                 map.put(s[0], s[1]);
             }
 
