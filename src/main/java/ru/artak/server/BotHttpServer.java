@@ -3,11 +3,17 @@ package ru.artak.server;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import org.apache.commons.lang3.StringUtils;
 import ru.artak.service.StravaService;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class BotHttpServer {
 
@@ -25,27 +31,57 @@ public class BotHttpServer {
         server.start();
     }
 
-    static class EchoHandler implements HttpHandler {
+    private class EchoHandler implements HttpHandler {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String query = exchange.getRequestURI().getQuery();
+            Map<String, String> stateAndAuthCode = getStateAndAuthCode(exchange);
+            String state = stateAndAuthCode.get("state");
+            String authorizationCode = stateAndAuthCode.get("code");
+            String text = "Authorization failed. StravaBot";
 
-            String[] spliterQuery = query.split("&");
-            String[] spliterState = spliterQuery[0].split("=");
-            String[] spliterAuthorizationCode = spliterQuery[1].split("=");
-            String state = spliterState[1];
-            String authorizationCode = spliterAuthorizationCode[1];
-
-            // TODO вызвать stravaService.stravaService(...)
-
-            byte[] bytes = "GREAT, YOU ARE AUTHORIZED. StravaBot".getBytes();
-            exchange.sendResponseHeaders(200, bytes.length);
-
-
-            OutputStream os = exchange.getResponseBody();
-            os.write(bytes);
-            os.close();
+            if (!StringUtils.isBlank(state) && !StringUtils.isBlank(authorizationCode)) {
+                try {
+                    stravaService.obtainCredentials(state, authorizationCode);
+                    text = "GREAT, YOU ARE AUTHORIZED. StravaBot";
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            writeResponse(exchange, text);
         }
+
+        private Map<String, String> getStateAndAuthCode(HttpExchange exchange) {
+            Map<String, String> map = new HashMap<>();
+            String query = exchange.getRequestURI().getQuery();
+            String[] spliterQuery = query.split("&");
+
+            for (String value : spliterQuery) {
+                String[] s = value.split("=");
+                map.put(s[0], s[1]);
+            }
+
+            return map;
+        }
+
+        private void writeResponse(HttpExchange exchange, String text) throws IOException {
+            exchange.sendResponseHeaders(200, text.getBytes().length);
+            OutputStream os = null;
+            try {
+                os = exchange.getResponseBody();
+                os.write(text.getBytes());
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    if (os != null)
+                        os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
     }
+
 }

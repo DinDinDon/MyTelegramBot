@@ -1,6 +1,7 @@
 package ru.artak.storage;
 
 import ru.artak.client.strava.StravaCredential;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
