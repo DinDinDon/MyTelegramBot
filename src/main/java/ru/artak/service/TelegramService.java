@@ -52,7 +52,7 @@ public class TelegramService {
                             case "/auth":
                                 handleAuthCommand(randomClientID, chatId);
                                 break;
-                            case "/weekDistance":
+                            case "/weekdistance":
                                 try {
                                     double weekDistance = stravaService.getWeekDistance(chatId);
                                     handleWeekDistance(chatId, telegramWeekDistanceText, weekDistance);
