@@ -47,26 +47,32 @@ public class StravaService {
         }
     }
 
-    public double getWeekDistance(Integer chatId) throws IOException, InterruptedException {
+    public double getWeekDistance(Integer chatId) {
         double weekDistance = 0.0;
         String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
 
-          ResultActivities[] resultActivities =  stravaClient.getActivities(accessToken);
-        for (int i = 0; i < resultActivities.length; i++) {
-           Date date =  resultActivities[i].getStartDate();
-           if(checkWeekDay(date)==true){
-               weekDistance +=resultActivities[i].getDistance();
-           }
+        ResultActivities[] resultActivities;
+        try {
+            resultActivities = stravaClient.getActivities(accessToken);
+        } catch (IOException | InterruptedException e) {
+
+            throw new RuntimeException("no Activities Date");
+        }
+        for (ResultActivities resultActivity : resultActivities) {
+            Date date = resultActivity.getStartDate();
+            if (checkWeekDay(date) == true) {
+                weekDistance += resultActivity.getDistance();
+            }
         }
         return weekDistance;
     }
 
-    public boolean checkWeekDay(Date date){
+    public boolean checkWeekDay(Date date) {
         Date today = new Date();
         Calendar calendarForToday = Calendar.getInstance();
         calendarForToday.setTime(today);
 
-        int dayToday = calendarForToday.get(DAY_OF_WEEK) ;
+        int dayToday = calendarForToday.get(DAY_OF_WEEK);
         int weekCurrent = calendarForToday.get(WEEK_OF_MONTH);
 
         Calendar calendarForStrava = Calendar.getInstance();
@@ -75,7 +81,7 @@ public class StravaService {
         int dayOnWeekStrava = calendarForStrava.get(DAY_OF_WEEK);
         int weekStrava = calendarForStrava.get(WEEK_OF_MONTH);
 
-        if(weekCurrent==weekStrava) {
+        if (weekCurrent == weekStrava) {
             if (dayToday == 1)
 
                 return true;
