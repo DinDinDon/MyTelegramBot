@@ -34,7 +34,7 @@ public class Main {
         });
         httpServerThread.start();
 
-        TelegramService telegramService = new TelegramService(telegramClient, inMemoryStorage);
+        TelegramService telegramService = new TelegramService(telegramClient, inMemoryStorage,stravaService);
         telegramService.sendGet();
 
     }

@@ -45,6 +45,13 @@ public class TelegramClient {
 
     }
 
+    public void sendDistanceText(Integer chatId, String commandText, double weekDistance) throws IOException, InterruptedException {
+        URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken + "/sendMessage?chat_id=" +
+                chatId + "&text=" + URLEncoder.encode(commandText, StandardCharsets.UTF_8)+weekDistance+"Км");
+        sendMessage(telegramDefaultResponseUrl);
+
+    }
+
     public void sendOauthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
         URI oauthUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken + "/sendMessage?chat_id=" + chatId + "&text="
                 + URLEncoder.encode(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +

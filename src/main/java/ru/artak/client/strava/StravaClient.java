@@ -2,6 +2,7 @@ package ru.artak.client.strava;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ru.artak.client.strava.model.ResultActivities;
 import ru.artak.client.strava.model.StravaOauthResp;
 
 import java.io.IOException;
@@ -9,12 +10,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.text.SimpleDateFormat;
 
 import static java.net.http.HttpRequest.BodyPublishers.noBody;
 
 public class StravaClient {
 
     public static final String STRAVA_OAUTH_ADDRESS = "https://www.strava.com/oauth/";
+    public static final String STRAVA_API_ADDRESS = "https://www.strava.com/api/v3";
     private final ObjectMapper mapper = new ObjectMapper();
 
     private int stravaClientId;
@@ -37,4 +40,17 @@ public class StravaClient {
 
         return mapper.readValue(stravaAccessToken.body(), StravaOauthResp.class);
     }
+
+    public ResultActivities[] getActivities(String accessToken) throws IOException, InterruptedException {
+        HttpRequest requestForGetActivities = HttpRequest.newBuilder()
+                .uri(URI.create(STRAVA_API_ADDRESS + "/activities"))
+                .header("Authorization", "Bearer " + accessToken)
+                .GET()
+                .build();
+        HttpResponse<String> responseActivities = httpClientForStrava.send(requestForGetActivities, HttpResponse.BodyHandlers.ofString());
+
+        return mapper.readValue(responseActivities.body(), ResultActivities[].class);
+
+    }
+
 }

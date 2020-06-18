@@ -15,15 +15,20 @@ public class TelegramService {
 
     private final TelegramClient telegramClient;
 
+    private final StravaService stravaService;
+
     private final Storage storage;
 
     private final String telegramBotDefaultText = "Для начало работы выберите  /auth";
 
-    private final String telegramWeekDistanceText = "Скоро здесь что-то будет!";
+    private final String telegramWeekDistanceText = "Вы пробежали ";
 
-    public TelegramService(TelegramClient telegramClient, Storage storage) {
+    private final String telegramNoAuthorizationText = "Вы не авторизованы";
+
+    public TelegramService(TelegramClient telegramClient, Storage storage, StravaService stravaService) {
         this.telegramClient = telegramClient;
         this.storage = storage;
+        this.stravaService = stravaService;
     }
 
     public void sendGet() throws IOException, InterruptedException {
@@ -48,8 +53,13 @@ public class TelegramService {
                                 handleAuthCommand(randomClientID, chatId);
                                 break;
                             case "/weekDistance":
-                                handleWeekDistance(chatId, telegramWeekDistanceText);
-                                // TODO получить количество километров которые набегал за календарную неделю
+                                try {
+                                    double weekDistance = stravaService.getWeekDistance(chatId);
+                                    handleWeekDistance(chatId, telegramWeekDistanceText, weekDistance);
+                                } catch (Exception e) {
+                                    handleDefaultCommand(chatId, telegramNoAuthorizationText);
+                                    e.printStackTrace();
+                                }
                                 break;
                             default:
                                 handleDefaultCommand(chatId, telegramBotDefaultText);
@@ -63,8 +73,8 @@ public class TelegramService {
         }
     }
 
-    private void handleWeekDistance(Integer chatId, String telegramWeekDistanceText) throws IOException, InterruptedException {
-        telegramClient.sendSimpleText(chatId, telegramWeekDistanceText);
+    private void handleWeekDistance(Integer chatId, String telegramWeekDistanceText, double weekDistance) throws IOException, InterruptedException {
+        telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
     }
 
     private void handleDefaultCommand(Integer chatId, String telegramBotStartText) throws IOException, InterruptedException {
