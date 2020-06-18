@@ -41,6 +41,17 @@ public class StravaClient {
         return mapper.readValue(stravaAccessToken.body(), StravaOauthResp.class);
     }
 
+    public StravaOauthResp getUpdateAccessToken(String refreshToken) throws IOException, InterruptedException {
+        HttpRequest requestForUpdateAccess = HttpRequest.newBuilder()
+                .uri(URI.create(STRAVA_API_ADDRESS+"/oauth/token?client_id=" + stravaClientId + "&client_secret=" + stravaSecret +
+                        "&grant_type=refresh_token&refresh_token=" +refreshToken))
+                .header("Authorization", "Bearer " + stravaSecret)
+                .POST(noBody())
+                .build();
+        HttpResponse<String> responseUpdateAccess = httpClientForStrava.send(requestForUpdateAccess, HttpResponse.BodyHandlers.ofString());
+        return mapper.readValue(responseUpdateAccess.body(),StravaOauthResp.class);
+    }
+
     public ResultActivities[] getActivities(String accessToken) throws IOException, InterruptedException {
         HttpRequest requestForGetActivities = HttpRequest.newBuilder()
                 .uri(URI.create(STRAVA_API_ADDRESS + "/activities"))
@@ -51,6 +62,15 @@ public class StravaClient {
 
         return mapper.readValue(responseActivities.body(), ResultActivities[].class);
 
+    }
+//https://www.strava.com/oauth/deauthorize
+    public void deauthorizeUser(String accessToken) throws IOException, InterruptedException {
+        HttpRequest requestForDeauthorize = HttpRequest.newBuilder()
+                .uri(URI.create(STRAVA_OAUTH_ADDRESS+"/deauthorize"))
+                .header("Authorization", "Bearer " + accessToken)
+                .POST(noBody())
+                .build();
+        HttpResponse<String> responseDeauthorize = httpClientForStrava.send(requestForDeauthorize, HttpResponse.BodyHandlers.ofString());
     }
 
 }

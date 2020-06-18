@@ -25,6 +25,8 @@ public class TelegramService {
 
     private final String telegramNoAuthorizationText = "Вы не авторизованы";
 
+    private final String telegramDeauthorizeText = "Вы деавторизированы!";
+
     public TelegramService(TelegramClient telegramClient, Storage storage, StravaService stravaService) {
         this.telegramClient = telegramClient;
         this.storage = storage;
@@ -53,14 +55,29 @@ public class TelegramService {
                                 handleAuthCommand(randomClientID, chatId);
                                 break;
                             case "/weekdistance":
+                                if (stravaService.accessIsAlive(chatId)) {
+                                    try {
+                                        double weekDistance = stravaService.getWeekDistance(chatId);
+                                        handleWeekDistance(chatId, telegramWeekDistanceText, weekDistance);
+
+                                    } catch (Exception e) {
+                                        handleDefaultCommand(chatId, telegramNoAuthorizationText);
+                                        e.printStackTrace();
+                                    }
+                                } else {
+                                    stravaService.updateAccessToken(chatId);
+                                }
+                                break;
+                            case "/deauthorize":
                                 try {
-                                    double weekDistance = stravaService.getWeekDistance(chatId);
-                                    handleWeekDistance(chatId, telegramWeekDistanceText, weekDistance);
+                                    stravaService.deauthorize(chatId);
+                                    handleDeauthorizeCommand(chatId, telegramDeauthorizeText);
                                 } catch (Exception e) {
                                     handleDefaultCommand(chatId, telegramNoAuthorizationText);
                                     e.printStackTrace();
                                 }
                                 break;
+
                             default:
                                 handleDefaultCommand(chatId, telegramBotDefaultText);
                                 break;
@@ -85,6 +102,11 @@ public class TelegramService {
         storage.saveStateForUser(randomClientID, chatId);
 
         telegramClient.sendOauthCommand(randomClientID, chatId);
+
+    }
+
+    private void handleDeauthorizeCommand(Integer chatId, String telegramDeauthorizeText) throws IOException, InterruptedException {
+        telegramClient.sendSimpleText(chatId, telegramDeauthorizeText);
 
     }
 

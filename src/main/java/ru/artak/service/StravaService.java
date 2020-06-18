@@ -50,13 +50,13 @@ public class StravaService {
     public double getWeekDistance(Integer chatId) {
         double weekDistance = 0.0;
         String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
-
         ResultActivities[] resultActivities;
+
         try {
             resultActivities = stravaClient.getActivities(accessToken);
         } catch (IOException | InterruptedException e) {
 
-            throw new RuntimeException("no Activities Date");
+            throw new RuntimeException("no Activities Data");
         }
         for (ResultActivities resultActivity : resultActivities) {
             Date date = resultActivity.getStartDate();
@@ -64,7 +64,32 @@ public class StravaService {
                 weekDistance += resultActivity.getDistance();
             }
         }
+
         return weekDistance;
+    }
+
+    public StravaCredential updateAccessToken(Integer chatId) throws IOException, InterruptedException {
+        String refreshToken = storage.getStravaCredentials(chatId).getRefreshToken();
+        StravaOauthResp strava = stravaClient.getUpdateAccessToken(refreshToken);
+        StravaCredential stravaCredential =  new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
+
+        storage.saveStravaCredentials(chatId, stravaCredential);
+
+        return stravaCredential;
+    }
+
+    public boolean accessIsAlive(Integer chatId) {
+        Date today = new Date();
+        Long timeToExpired = storage.getStravaCredentials(chatId).getTimeToExpired();
+        if (timeToExpired < (today.getTime() / 1000 - 3600)) {
+            return false;
+        }
+        return true;
+    }
+
+    public void deauthorize(Integer chatId) throws IOException, InterruptedException {
+        String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
+        stravaClient.deauthorizeUser(accessToken);
     }
 
     public boolean checkWeekDay(Date date) {
