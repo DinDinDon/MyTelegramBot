@@ -16,10 +16,15 @@ public class Main {
         // чтение конфигурации, должны быть заданы параметры запуска или переменные окружения. Приоритет у переменных окружения.
         String telegramToken = System.getenv("TELEGRAM_TOKEN");
         String stravaClientSecret = System.getenv("STRAVA_CLIENT_SECRET");
-        String stravaClientIdString = System.getenv("STRAVA_CLIENT_ID");
         String stravaBaseRedirectUrl = System.getenv("STRAVA_BASE_REDIRECT_URL");
+    
+        String stravaClientIdString = System.getenv("STRAVA_CLIENT_ID");
         int stravaClientId = 0;
         if (StringUtils.isNotBlank(stravaClientIdString)) stravaClientId = Integer.parseInt(stravaClientIdString);
+    
+        String portString = System.getenv("PORT");
+        int port = 8080;
+        if (StringUtils.isNotBlank(portString)) port = Integer.parseInt(portString);
     
         if (args.length < 3 && (StringUtils.isBlank(telegramToken) && stravaClientId == 0 && StringUtils.isBlank(stravaClientSecret))) {
             throw new IllegalArgumentException("Please define required configuration variables");
@@ -28,7 +33,7 @@ public class Main {
         if (StringUtils.isBlank(telegramToken)) telegramToken = args[0];
         if (StringUtils.isBlank(stravaClientSecret)) stravaClientSecret = args[1];
         if (stravaClientId == 0) stravaClientId = Integer.parseInt(args[2]);
-        if (StringUtils.isBlank(stravaBaseRedirectUrl)) stravaBaseRedirectUrl = args[4];
+        if (StringUtils.isBlank(stravaBaseRedirectUrl)) stravaBaseRedirectUrl = "http://localhost:8080";
     
         if (StringUtils.isBlank(telegramToken)) {
             throw new IllegalArgumentException("doesn't define telegram token");
@@ -47,7 +52,7 @@ public class Main {
         InMemoryStorage inMemoryStorage = InMemoryStorage.getInstance();
     
         StravaService stravaService = new StravaService(telegramClient, inMemoryStorage, stravaClient);
-        BotHttpServer botHttpServer = new BotHttpServer(stravaService);
+        BotHttpServer botHttpServer = new BotHttpServer(stravaService, port);
     
         // запуск сервера
         Thread httpServerThread;
