@@ -1,16 +1,18 @@
 package ru.artak.client.strava;
 
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.artak.client.strava.model.ResultActivities;
-import ru.artak.client.strava.model.StravaOauthResp;
+
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.text.SimpleDateFormat;
+import java.util.List;
+
 
 import static java.net.http.HttpRequest.BodyPublishers.noBody;
 
@@ -52,16 +54,19 @@ public class StravaClient {
         return mapper.readValue(responseUpdateAccess.body(),StravaOauthResp.class);
     }
 
-    public ResultActivities[] getActivities(String accessToken) throws IOException, InterruptedException {
+    public List<ResultActivities> getActivities(String accessToken, Long after, Long before) throws IOException, InterruptedException {
         HttpRequest requestForGetActivities = HttpRequest.newBuilder()
-                .uri(URI.create(STRAVA_API_ADDRESS + "/activities"))
+                .uri(URI.create(STRAVA_API_ADDRESS + "/athlete/activities?&after=" + after + "&before=" + before))
                 .header("Authorization", "Bearer " + accessToken)
                 .GET()
                 .build();
+
         HttpResponse<String> responseActivities = httpClientForStrava.send(requestForGetActivities, HttpResponse.BodyHandlers.ofString());
+        List<ResultActivities> activities = mapper.readValue(responseActivities.body(), new TypeReference<>() {
+        });
+        System.out.println();
 
-        return mapper.readValue(responseActivities.body(), ResultActivities[].class);
-
+        return activities;
     }
 //https://www.strava.com/oauth/deauthorize
     public void deauthorizeUser(String accessToken) throws IOException, InterruptedException {
@@ -72,5 +77,7 @@ public class StravaClient {
                 .build();
         HttpResponse<String> responseDeauthorize = httpClientForStrava.send(requestForDeauthorize, HttpResponse.BodyHandlers.ofString());
     }
+
+
 
 }

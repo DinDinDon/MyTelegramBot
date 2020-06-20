@@ -1,14 +1,12 @@
 package ru.artak.client.strava.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import ru.artak.client.strava.model.JsonDateDeserializer;
 
 import java.time.LocalDateTime;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class ResultActivities {
+public class ResultActivitiesTest {
+
     private String name;
 
     private double distance;
@@ -21,7 +19,7 @@ public class ResultActivities {
 
     private String type;
 
-    public ResultActivities() {
+    public ResultActivitiesTest() {
     }
 
 
@@ -41,4 +39,3 @@ public class ResultActivities {
 
     public String getType() { return type; }
 }
-

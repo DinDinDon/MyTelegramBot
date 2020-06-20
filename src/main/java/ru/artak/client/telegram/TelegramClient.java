@@ -45,7 +45,7 @@ public class TelegramClient {
 
     }
 
-    public void sendDistanceText(Integer chatId, String commandText, double weekDistance) throws IOException, InterruptedException {
+    public void sendDistanceText(Integer chatId, String commandText, Number weekDistance) throws IOException, InterruptedException {
         URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken + "/sendMessage?chat_id=" +
                 chatId + "&text=" + URLEncoder.encode(commandText, StandardCharsets.UTF_8)+weekDistance+"Км");
         sendMessage(telegramDefaultResponseUrl);

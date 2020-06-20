@@ -3,16 +3,13 @@ package ru.artak.service;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.strava.model.ResultActivities;
-import ru.artak.client.strava.model.StravaOauthResp;
+import ru.artak.client.strava.StravaOauthResp;
 import ru.artak.storage.Storage;
 import ru.artak.client.telegram.TelegramClient;
 
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.Date;
-
-import static java.util.Calendar.DAY_OF_WEEK;
-import static java.util.Calendar.WEEK_OF_MONTH;
+import java.time.*;
+import java.util.*;
 
 
 public class StravaService {
@@ -47,75 +44,63 @@ public class StravaService {
         }
     }
 
-    public double getWeekDistance(Integer chatId) {
-        double weekDistance = 0.0;
+    public Number getRunningWeekDistance(Integer chatId) {
+        Number weekDistance;
         String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
-        ResultActivities[] resultActivities;
-
+        Map<String, Long> afterAndBeforTime = getAfterAndBeforeTime();
+        Long after = afterAndBeforTime.get("after");
+        Long before = afterAndBeforTime.get("before");
+        List<ResultActivities> resultActivities;
         try {
-            resultActivities = stravaClient.getActivities(accessToken);
+            resultActivities = stravaClient.getActivities(accessToken, after, before);
         } catch (IOException | InterruptedException e) {
-
             throw new RuntimeException("no Activities Data");
         }
-        for (ResultActivities resultActivity : resultActivities) {
-            Date date = resultActivity.getStartDate();
-            if (checkWeekDay(date) == true) {
-                weekDistance += resultActivity.getDistance();
-            }
-        }
+        float resultRunningDistance = getRunningDistanceFormat(resultActivities);
+        weekDistance = getFormatKm(resultRunningDistance);
 
         return weekDistance;
     }
 
-    public StravaCredential updateAccessToken(Integer chatId) throws IOException, InterruptedException {
-        String refreshToken = storage.getStravaCredentials(chatId).getRefreshToken();
-        StravaOauthResp strava = stravaClient.getUpdateAccessToken(refreshToken);
-        StravaCredential stravaCredential =  new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
-
-        storage.saveStravaCredentials(chatId, stravaCredential);
-
-        return stravaCredential;
-    }
-
-    public boolean accessIsAlive(Integer chatId) {
-        Date today = new Date();
-        Long timeToExpired = storage.getStravaCredentials(chatId).getTimeToExpired();
-        if (timeToExpired < (today.getTime() / 1000 - 3600)) {
-            return false;
-        }
-        return true;
-    }
-
-    public void deauthorize(Integer chatId) throws IOException, InterruptedException {
-        String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
-        stravaClient.deauthorizeUser(accessToken);
-    }
-
-    public boolean checkWeekDay(Date date) {
-        Date today = new Date();
-        Calendar calendarForToday = Calendar.getInstance();
-        calendarForToday.setTime(today);
-
-        int dayToday = calendarForToday.get(DAY_OF_WEEK);
-        int weekCurrent = calendarForToday.get(WEEK_OF_MONTH);
-
-        Calendar calendarForStrava = Calendar.getInstance();
-        calendarForStrava.setTime(date);
-
-        int dayOnWeekStrava = calendarForStrava.get(DAY_OF_WEEK);
-        int weekStrava = calendarForStrava.get(WEEK_OF_MONTH);
-
-        if (weekCurrent == weekStrava) {
-            if (dayToday == 1)
-
-                return true;
-            if (dayOnWeekStrava <= dayToday && dayOnWeekStrava != 1)
-
-                return true;
+    private float getRunningDistanceFormat(List<ResultActivities> resultActivities ){
+        float resultRunningDistance =  0.0f;
+        for (ResultActivities resultActivity : resultActivities) {
+            if (resultActivity.getType().equals("Run")) {
+                resultRunningDistance += resultActivity.getDistance();
+            }
         }
 
-        return false;
+        return resultRunningDistance;
+    }
+
+    private Number getFormatKm(float distance) {
+        float result = distance / 1000;
+        if (result - Math.round(result) == 0)
+            return Math.round(result);
+
+        return Math.round(result * 10.0) / 10.0;
+    }
+
+    private Map<String, Long> getAfterAndBeforeTime() {
+        Map<String, Long> afterAndBeforTime = new HashMap<>();
+        LocalTime TimeMonday = LocalTime.of(00, 00, 00);
+//        LocalTime TimeSunday = LocalTime.of(23, 59, 59);
+
+        LocalDateTime afterToday = LocalDateTime.of(LocalDate.now(), TimeMonday).with(DayOfWeek.MONDAY);
+//        LocalDateTime beforeToday = LocalDateTime.of(LocalDate.now(), TimeSunday).with(DayOfWeek.SUNDAY).plusDays(1);
+        LocalDateTime beforeToday = LocalDateTime.now().with(DayOfWeek.SUNDAY).plusDays(1);
+
+
+        Instant instantMonday = beforeToday.toInstant(ZoneOffset.MAX);
+        Long before = instantMonday.getEpochSecond();
+
+        Instant instantSunday = afterToday.toInstant(ZoneOffset.MAX);
+        Long after = instantSunday.getEpochSecond();
+
+        afterAndBeforTime.put("before", before);
+        afterAndBeforTime.put("after", after);
+
+        return afterAndBeforTime;
     }
 
 }

@@ -9,11 +9,9 @@ import ru.artak.service.StravaService;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
 
 public class BotHttpServer {
 
