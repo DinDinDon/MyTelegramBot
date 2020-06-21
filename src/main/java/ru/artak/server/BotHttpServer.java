@@ -9,23 +9,24 @@ import ru.artak.service.StravaService;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
 
 public class BotHttpServer {
 
     private final StravaService stravaService;
+    
+    private final int port;
 
-    public BotHttpServer(StravaService stravaService) {
+    public BotHttpServer(StravaService stravaService, int port) {
         this.stravaService = stravaService;
+        this.port = port;
     }
 
     public void run() throws IOException {
         HttpServer server = HttpServer.create();
-        server.bind(new InetSocketAddress(8080), 0);
+        server.bind(new InetSocketAddress(port), 0);
 
         server.createContext("/", new EchoHandler());
         server.start();
