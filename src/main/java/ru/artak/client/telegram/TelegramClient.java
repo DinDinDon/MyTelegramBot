@@ -14,25 +14,28 @@ import java.nio.charset.StandardCharsets;
 
 
 public class TelegramClient {
-
+    
     public static final String TELEGRAM_BASE_URL = "https://api.telegram.org";
-
+    
     private final ObjectMapper mapper = new ObjectMapper();
-
-    private final HttpClient httpClient =
-            HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
-
-    private String telegramToken;
-    private int stravaClientId;
-
-    public TelegramClient(String telegramToken, int stravaClientId) {
+    
+    private final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
+    
+    private final String telegramToken;
+    
+    private final int stravaClientId;
+    
+    private final String baseRedirectUrl;
+    
+    public TelegramClient(String telegramToken, int stravaClientId, String baseRedirectUrl) {
         this.telegramToken = telegramToken;
         this.stravaClientId = stravaClientId;
+        this.baseRedirectUrl = baseRedirectUrl;
     }
-
+    
     public GetUpdateTelegram getUpdates(Integer offset) throws IOException, InterruptedException {
         URI telegramGetUpdateUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken +
-                "/getUpdates?offset=" + (offset + 1));
+            "/getUpdates?offset=" + (offset + 1));
         HttpResponse<String> telegramGetUpdateResponse = sendMessage(telegramGetUpdateUrl);
 
         return mapper.readValue(telegramGetUpdateResponse.body(), GetUpdateTelegram.class);
@@ -54,9 +57,9 @@ public class TelegramClient {
 
     public void sendOauthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
         URI oauthUrl = URI.create(TELEGRAM_BASE_URL + "/" + telegramToken + "/sendMessage?chat_id=" + chatId + "&text="
-                + URLEncoder.encode(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
-                stravaClientId + "&state=" + randomClientID + "&response_type=code&redirect_uri=http://localhost:8080" +
-                "/exchange_token&approval_prompt=force&&scope=activity:read", StandardCharsets.UTF_8));
+            + URLEncoder.encode(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
+            stravaClientId + "&state=" + randomClientID + "&response_type=code&redirect_uri=" + baseRedirectUrl +
+            "/exchange_token&approval_prompt=force&&scope=activity:read", StandardCharsets.UTF_8));
         sendMessage(oauthUrl);
     }
 

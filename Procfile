@@ -1,0 +1,1 @@
+web: java -jar target/mytelegrambot*-jar-with-dependencies.jar
