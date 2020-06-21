@@ -68,7 +68,7 @@ public class StravaClient {
 
         return activities;
     }
-//https://www.strava.com/oauth/deauthorize
+
     public void deauthorizeUser(String accessToken) throws IOException, InterruptedException {
         HttpRequest requestForDeauthorize = HttpRequest.newBuilder()
                 .uri(URI.create(STRAVA_OAUTH_ADDRESS+"/deauthorize"))

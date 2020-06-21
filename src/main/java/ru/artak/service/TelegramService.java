@@ -55,29 +55,8 @@ public class TelegramService {
                                 handleAuthCommand(randomClientID, chatId);
                                 break;
                             case "/weekdistance":
-                                if (stravaService.accessIsAlive(chatId)) {
-                                    try {
-                                        double weekDistance = stravaService.getWeekDistance(chatId);
-                                        handleWeekDistance(chatId, telegramWeekDistanceText, weekDistance);
-
-                                    } catch (Exception e) {
-                                        handleDefaultCommand(chatId, telegramNoAuthorizationText);
-                                        e.printStackTrace();
-                                    }
-                                } else {
-                                    stravaService.updateAccessToken(chatId);
-                                }
+                                handleWeekDistance(chatId, telegramWeekDistanceText);
                                 break;
-                            case "/deauthorize":
-                                try {
-                                    stravaService.deauthorize(chatId);
-                                    handleDeauthorizeCommand(chatId, telegramDeauthorizeText);
-                                } catch (Exception e) {
-                                    handleDefaultCommand(chatId, telegramNoAuthorizationText);
-                                    e.printStackTrace();
-                                }
-                                break;
-
                             default:
                                 handleDefaultCommand(chatId, telegramBotDefaultText);
                                 break;
@@ -90,8 +69,14 @@ public class TelegramService {
         }
     }
 
-    private void handleWeekDistance(Integer chatId, String telegramWeekDistanceText, double weekDistance) throws IOException, InterruptedException {
-        telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
+    private void handleWeekDistance(Integer chatId, String telegramWeekDistanceText) throws IOException, InterruptedException {
+        try {
+            Number weekDistance = stravaService.getRunningWeekDistance(chatId);
+            telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
+        } catch (Exception e) {
+            handleDefaultCommand(chatId, telegramNoAuthorizationText);
+            e.printStackTrace();
+        }
     }
 
     private void handleDefaultCommand(Integer chatId, String telegramBotStartText) throws IOException, InterruptedException {
