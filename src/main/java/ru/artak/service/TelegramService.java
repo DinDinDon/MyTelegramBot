@@ -33,38 +33,42 @@ public class TelegramService {
         this.stravaService = stravaService;
     }
 
-    public void sendGet() throws IOException, InterruptedException {
+    public void sendGet() {
         final String randomClientID = UUID.randomUUID().toString().replace("-", "");
         Integer telegramOffset = 0;
 
         while (true) {
             synchronized (lock) {
-                GetUpdateTelegram getUpdateTelegram = telegramClient.getUpdates(telegramOffset);
+                try {
+                    GetUpdateTelegram getUpdateTelegram = telegramClient.getUpdates(telegramOffset);
 
-                List<TelegramUserInfo> updateIds = getAllTelegramUpdateUsers(getUpdateTelegram);
+                    List<TelegramUserInfo> updateIds = getAllTelegramUpdateUsers(getUpdateTelegram);
 
-                for (TelegramUserInfo id : updateIds) {
-                    Integer lastUpdateId = getUpdateTelegram.getResult().get(getUpdateTelegram.getResult().size() - 1).getUpdateId();
-                    Integer updateId = id.getUpdateId();
-                    Integer chatId = id.getChatId();
-                    String text = id.getText();
+                    for (TelegramUserInfo id : updateIds) {
+                        Integer lastUpdateId = getUpdateTelegram.getResult().get(getUpdateTelegram.getResult().size() - 1).getUpdateId();
+                        Integer updateId = id.getUpdateId();
+                        Integer chatId = id.getChatId();
+                        String text = id.getText();
 
-                    if (updateId <= lastUpdateId) {
-                        switch (text) {
-                            case "/auth":
-                                handleAuthCommand(randomClientID, chatId);
-                                break;
-                            case "/weekdistance":
-                                handleWeekDistance(chatId, telegramWeekDistanceText);
-                                break;
-                            default:
-                                handleDefaultCommand(chatId, telegramBotDefaultText);
-                                break;
+                        if (updateId <= lastUpdateId) {
+                            switch (text) {
+                                case "/auth":
+                                    handleAuthCommand(randomClientID, chatId);
+                                    break;
+                                case "/weekdistance":
+                                    handleWeekDistance(chatId, telegramWeekDistanceText);
+                                    break;
+                                default:
+                                    handleDefaultCommand(chatId, telegramBotDefaultText);
+                                    break;
+                            }
                         }
+                        telegramOffset = lastUpdateId;
                     }
-                    telegramOffset = lastUpdateId;
+                    lock.wait(500);
+                } catch (Throwable e) {
+                    e.printStackTrace();
                 }
-                lock.wait(500);
             }
         }
     }

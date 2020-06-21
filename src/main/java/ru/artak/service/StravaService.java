@@ -1,5 +1,6 @@
 package ru.artak.service;
 
+import org.apache.commons.lang3.tuple.Pair;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.strava.model.ResultActivities;
@@ -45,7 +46,6 @@ public class StravaService {
     }
 
     public Number getRunningWeekDistance(Integer chatId) {
-        Number weekDistance;
         String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
         Map<String, Long> afterAndBeforTime = getAfterAndBeforeTime();
         Long after = afterAndBeforTime.get("after");
@@ -57,14 +57,14 @@ public class StravaService {
             throw new RuntimeException("no Activities Data");
         }
         float resultRunningDistance = getRunningDistanceFormat(resultActivities);
-        weekDistance = getFormatKm(resultRunningDistance);
 
-        return weekDistance;
+        return getFormatKm(resultRunningDistance);
     }
 
     private float getRunningDistanceFormat(List<ResultActivities> resultActivities) {
         float resultRunningDistance = 0.0f;
         for (ResultActivities resultActivity : resultActivities) {
+            //const
             if (resultActivity.getType().equals("Run")) {
                 resultRunningDistance += resultActivity.getDistance();
             }
@@ -72,7 +72,7 @@ public class StravaService {
 
         return resultRunningDistance;
     }
-
+        // util вынести
     private Number getFormatKm(float distance) {
         float result = distance / 1000;
         if (result - Math.round(result) == 0)
@@ -80,17 +80,16 @@ public class StravaService {
 
         return Math.round(result * 10.0) / 10.0;
     }
-
+    // переделать в класс
     private Map<String, Long> getAfterAndBeforeTime() {
         Map<String, Long> afterAndBeforTime = new HashMap<>();
-        LocalTime TimeMonday = LocalTime.of(00, 00, 00);
+        LocalTime timeMonday = LocalTime.of(00, 00, 00);
 //        LocalTime TimeSunday = LocalTime.of(23, 59, 59);
-
-        LocalDateTime afterToday = LocalDateTime.of(LocalDate.now(), TimeMonday).with(DayOfWeek.MONDAY);
+        LocalDateTime afterToday = LocalDateTime.of(LocalDate.now(), timeMonday).with(DayOfWeek.MONDAY);
 //        LocalDateTime beforeToday = LocalDateTime.of(LocalDate.now(), TimeSunday).with(DayOfWeek.SUNDAY).plusDays(1);
         LocalDateTime beforeToday = LocalDateTime.now().with(DayOfWeek.SUNDAY).plusDays(1);
 
-        Instant instantMonday = beforeToday.toInstant(ZoneOffset.MAX);
+        Instant instantMonday = beforeToday.toInstant(ZoneOffset.MIN);
         Long before = instantMonday.getEpochSecond();
 
         Instant instantSunday = afterToday.toInstant(ZoneOffset.MAX);
