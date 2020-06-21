@@ -1,6 +1,5 @@
 package ru.artak.service;
 
-import org.apache.commons.lang3.tuple.Pair;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.strava.model.ResultActivities;
@@ -16,6 +15,7 @@ import java.util.*;
 public class StravaService {
 
     private static final String AUTHORIZED_TEXT = "Strava аккаунт был успешно подключен!";
+    private final String type = "Run";
     private final TelegramClient telegramClient;
     private final StravaClient stravaClient;
     private final Storage storage;
@@ -47,9 +47,9 @@ public class StravaService {
 
     public Number getRunningWeekDistance(Integer chatId) {
         String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
-        Map<String, Long> afterAndBeforTime = getAfterAndBeforeTime();
-        Long after = afterAndBeforTime.get("after");
-        Long before = afterAndBeforTime.get("before");
+        WeekInterval weekInterval = getWeekInterval();
+        Long after = weekInterval.getAfter();
+        Long before = weekInterval.getBefor();
         List<ResultActivities> resultActivities;
         try {
             resultActivities = stravaClient.getActivities(accessToken, after, before);
@@ -58,35 +58,24 @@ public class StravaService {
         }
         float resultRunningDistance = getRunningDistanceFormat(resultActivities);
 
-        return getFormatKm(resultRunningDistance);
+        return UtilsFormatKm.getFormatKm(resultRunningDistance);
     }
 
     private float getRunningDistanceFormat(List<ResultActivities> resultActivities) {
         float resultRunningDistance = 0.0f;
         for (ResultActivities resultActivity : resultActivities) {
-            //const
-            if (resultActivity.getType().equals("Run")) {
+            if (resultActivity.getType().equals(type)) {
                 resultRunningDistance += resultActivity.getDistance();
             }
         }
 
         return resultRunningDistance;
     }
-        // util вынести
-    private Number getFormatKm(float distance) {
-        float result = distance / 1000;
-        if (result - Math.round(result) == 0)
-            return Math.round(result);
 
-        return Math.round(result * 10.0) / 10.0;
-    }
-    // переделать в класс
-    private Map<String, Long> getAfterAndBeforeTime() {
-        Map<String, Long> afterAndBeforTime = new HashMap<>();
-        LocalTime timeMonday = LocalTime.of(00, 00, 00);
-//        LocalTime TimeSunday = LocalTime.of(23, 59, 59);
-        LocalDateTime afterToday = LocalDateTime.of(LocalDate.now(), timeMonday).with(DayOfWeek.MONDAY);
-//        LocalDateTime beforeToday = LocalDateTime.of(LocalDate.now(), TimeSunday).with(DayOfWeek.SUNDAY).plusDays(1);
+
+    private WeekInterval getWeekInterval() {
+        LocalDateTime afterToday = LocalDateTime.of(LocalDate.now(), LocalTime.of(00, 00, 00))
+                .with(DayOfWeek.MONDAY);
         LocalDateTime beforeToday = LocalDateTime.now().with(DayOfWeek.SUNDAY).plusDays(1);
 
         Instant instantMonday = beforeToday.toInstant(ZoneOffset.MIN);
@@ -95,10 +84,7 @@ public class StravaService {
         Instant instantSunday = afterToday.toInstant(ZoneOffset.MAX);
         Long after = instantSunday.getEpochSecond();
 
-        afterAndBeforTime.put("before", before);
-        afterAndBeforTime.put("after", after);
-
-        return afterAndBeforTime;
+        return new WeekInterval(after, before);
     }
 
 }
