@@ -16,14 +16,17 @@ import java.util.Map;
 public class BotHttpServer {
 
     private final StravaService stravaService;
+    
+    private final int port;
 
-    public BotHttpServer(StravaService stravaService) {
+    public BotHttpServer(StravaService stravaService, int port) {
         this.stravaService = stravaService;
+        this.port = port;
     }
 
     public void run() throws IOException {
         HttpServer server = HttpServer.create();
-        server.bind(new InetSocketAddress(8080), 0);
+        server.bind(new InetSocketAddress(port), 0);
 
         server.createContext("/", new EchoHandler());
         server.start();
