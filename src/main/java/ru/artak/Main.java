@@ -68,10 +68,6 @@ public class Main {
             throw new RuntimeException("error on create http server thread", e);
         }
         httpServerThread.start();
-
-
-//        TelegramService telegramService = new TelegramService(telegramClient, inMemoryStorage, stravaService);
-
         System.out.println("started http server");
     
         // инициализация и запуск обработчика запросов telegram api

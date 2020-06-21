@@ -62,8 +62,8 @@ public class StravaService {
         return weekDistance;
     }
 
-    private float getRunningDistanceFormat(List<ResultActivities> resultActivities ){
-        float resultRunningDistance =  0.0f;
+    private float getRunningDistanceFormat(List<ResultActivities> resultActivities) {
+        float resultRunningDistance = 0.0f;
         for (ResultActivities resultActivity : resultActivities) {
             if (resultActivity.getType().equals("Run")) {
                 resultRunningDistance += resultActivity.getDistance();
@@ -89,7 +89,6 @@ public class StravaService {
         LocalDateTime afterToday = LocalDateTime.of(LocalDate.now(), TimeMonday).with(DayOfWeek.MONDAY);
 //        LocalDateTime beforeToday = LocalDateTime.of(LocalDate.now(), TimeSunday).with(DayOfWeek.SUNDAY).plusDays(1);
         LocalDateTime beforeToday = LocalDateTime.now().with(DayOfWeek.SUNDAY).plusDays(1);
-
 
         Instant instantMonday = beforeToday.toInstant(ZoneOffset.MAX);
         Long before = instantMonday.getEpochSecond();
