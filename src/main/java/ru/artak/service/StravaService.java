@@ -87,4 +87,29 @@ public class StravaService {
         return new WeekInterval(after, before);
     }
 
+    public void accessIsAlive(Integer chatId) throws IOException, InterruptedException {
+        Long timeToExpired = storage.getStravaCredentials(chatId).getTimeToExpired();
+        LocalDateTime dateTimeToExpired = LocalDateTime.ofInstant(Instant.ofEpochSecond(1592919361), ZoneId.systemDefault());
+        LocalDateTime today = LocalDateTime.now(ZoneId.systemDefault());
+        if (today.isAfter(dateTimeToExpired)) {
+            updateAccessToken(chatId);
+        }
+    }
+
+    public void deauthorize(Integer chatId) throws IOException, InterruptedException {
+        String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
+        stravaClient.deauthorizeUser(accessToken);
+        storage.removeUser(chatId);
+    }
+
+    private StravaCredential updateAccessToken(Integer chatId) throws IOException, InterruptedException {
+        String refreshToken = storage.getStravaCredentials(chatId).getRefreshToken();
+        StravaOauthResp strava = stravaClient.getUpdateAccessToken(refreshToken);
+        StravaCredential stravaCredential = new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
+
+        storage.saveStravaCredentials(chatId, stravaCredential);
+
+        return stravaCredential;
+    }
+
 }

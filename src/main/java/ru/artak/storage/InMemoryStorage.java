@@ -47,4 +47,9 @@ public class InMemoryStorage implements Storage {
         return chatIdToAccessToken.get(chatId);
     }
 
+    @Override
+    public void removeUser(Integer chatId) {
+        chatIdToAccessToken.remove(chatId);
+    }
+
 }
