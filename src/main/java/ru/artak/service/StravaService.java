@@ -52,7 +52,7 @@ public class StravaService {
         Long before = weekInterval.getBefor();
         List<ResultActivities> resultActivities;
         try {
-            resultActivities = stravaClient.getActivities(accessToken, after, before);
+            resultActivities = stravaClient.getActivities(chatId, accessToken, after, before);
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("no Activities Data");
         }
@@ -72,7 +72,6 @@ public class StravaService {
         return resultRunningDistance;
     }
 
-
     private WeekInterval getWeekInterval() {
         LocalDateTime afterToday = LocalDateTime.of(LocalDate.now(), LocalTime.of(00, 00, 00))
                 .with(DayOfWeek.MONDAY);
@@ -87,29 +86,9 @@ public class StravaService {
         return new WeekInterval(after, before);
     }
 
-    public void accessIsAlive(Integer chatId) throws IOException, InterruptedException {
-        Long timeToExpired = storage.getStravaCredentials(chatId).getTimeToExpired();
-        LocalDateTime dateTimeToExpired = LocalDateTime.ofInstant(Instant.ofEpochSecond(1592919361), ZoneId.systemDefault());
-        LocalDateTime today = LocalDateTime.now(ZoneId.systemDefault());
-        if (today.isAfter(dateTimeToExpired)) {
-            updateAccessToken(chatId);
-        }
-    }
-
-    public void deauthorize(Integer chatId) throws IOException, InterruptedException {
-        String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
+    public void deauthorize(Integer chatId, String accessToken) throws IOException, InterruptedException {
         stravaClient.deauthorizeUser(accessToken);
         storage.removeUser(chatId);
-    }
-
-    private StravaCredential updateAccessToken(Integer chatId) throws IOException, InterruptedException {
-        String refreshToken = storage.getStravaCredentials(chatId).getRefreshToken();
-        StravaOauthResp strava = stravaClient.getUpdateAccessToken(refreshToken);
-        StravaCredential stravaCredential = new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
-
-        storage.saveStravaCredentials(chatId, stravaCredential);
-
-        return stravaCredential;
     }
 
 }

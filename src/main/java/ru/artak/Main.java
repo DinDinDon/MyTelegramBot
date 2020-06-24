@@ -46,11 +46,11 @@ public class Main {
         }
 
         // инициализация зависимостей
-        StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret);
         TelegramClient telegramClient = new TelegramClient(telegramToken, stravaClientId, stravaBaseRedirectUrl);
 
         InMemoryStorage inMemoryStorage = InMemoryStorage.getInstance();
 
+        StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret, inMemoryStorage);
         StravaService stravaService = new StravaService(telegramClient, inMemoryStorage, stravaClient);
         BotHttpServer botHttpServer = new BotHttpServer(stravaService, port);
 
@@ -73,7 +73,12 @@ public class Main {
         // инициализация и запуск обработчика запросов telegram api
         TelegramService telegramService = new TelegramService(telegramClient, inMemoryStorage, stravaService);
         System.out.println("starting telegram bot handler");
-        telegramService.sendGet();
+        try {
+            telegramService.sendGet();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+
     }
 }
 

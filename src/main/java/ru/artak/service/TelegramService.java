@@ -1,5 +1,6 @@
 package ru.artak.service;
 
+import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.client.telegram.model.GetUpdateTelegram;
 import ru.artak.storage.Storage;
@@ -33,6 +34,7 @@ public class TelegramService {
     private final String telegramDeauthorizeText = "Вы деавторизированы!";
 
     private final String telegramWeekDistanceText = "Вы пробежали ";
+    private final String errorText = "Ошибка, пожалуйста повторите позднее ";
 
 
     public TelegramService(TelegramClient telegramClient, Storage storage, StravaService stravaService) {
@@ -87,7 +89,6 @@ public class TelegramService {
 
     private void handleWeekDistance(Integer chatId) throws IOException, InterruptedException {
         try {
-            stravaService.accessIsAlive(chatId);
             Number weekDistance = stravaService.getRunningWeekDistance(chatId);
             telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
         } catch (Exception e) {
@@ -101,23 +102,28 @@ public class TelegramService {
     }
 
     private void handleAuthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
-        try {
-            storage.getStravaCredentials(chatId).getAccessToken();
+        StravaCredential credential = storage.getStravaCredentials(chatId);
+        if (credential != null) {
             handleDefaultCommand(chatId, whenUserAlreadyAuthorized);
-        } catch (Exception e) {
+        }else {
             storage.saveStateForUser(randomClientID, chatId);
             telegramClient.sendOauthCommand(randomClientID, chatId);
-            e.printStackTrace();
         }
     }
 
     private void handleDeauthorizeCommand(Integer chatId) throws IOException, InterruptedException {
-        try {
-            stravaService.deauthorize(chatId);
-            telegramClient.sendSimpleText(chatId, telegramDeauthorizeText);
-        } catch (Exception e) {
+        StravaCredential credential = storage.getStravaCredentials(chatId);
+        if (credential == null) {
             telegramClient.sendSimpleText(chatId, telegramNoAuthorizationText);
-            e.printStackTrace();
+        } else {
+            String accessToken = credential.getAccessToken();
+            try {
+                stravaService.deauthorize(chatId, accessToken);
+                telegramClient.sendSimpleText(chatId, telegramDeauthorizeText);
+            } catch (Exception e) {
+                telegramClient.sendSimpleText(chatId, errorText);
+                e.printStackTrace();
+            }
         }
     }
 
