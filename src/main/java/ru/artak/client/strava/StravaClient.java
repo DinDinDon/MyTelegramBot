@@ -12,9 +12,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
+import java.time.temporal.TemporalField;
 import java.util.List;
 
 
@@ -60,8 +59,28 @@ public class StravaClient {
         HttpResponse<String> responseActivities = httpClientForStrava.send(requestForGetActivities, HttpResponse.BodyHandlers.ofString());
         List<ResultActivities> activities = mapper.readValue(responseActivities.body(), new TypeReference<>() {
         });
+        List<ResultActivities> ccorrectActivities = getCorrectDateWithTimeZone(activities);
 
-        return activities;
+        return ccorrectActivities;
+    }
+
+    private List<ResultActivities> getCorrectDateWithTimeZone(List<ResultActivities> resultActivities) {
+        LocalDateTime monday = LocalDateTime.of(LocalDate.now(),LocalTime.of(00,00,00)).with(DayOfWeek.MONDAY);
+        LocalDateTime sunday = LocalDateTime.of(LocalDate.now(),LocalTime.of(23,59,59)).with(DayOfWeek.SUNDAY);
+
+        for (int i = 0; i < resultActivities.size(); i++) {
+            LocalDateTime responsLastDayOfWeek = resultActivities.get(i).getStartDate();
+            LocalDateTime responsFirstDayOfWeek = resultActivities.get(resultActivities.size()-1).getStartDate();
+            if(responsFirstDayOfWeek.isBefore(monday) && !responsFirstDayOfWeek.isEqual(responsLastDayOfWeek)){
+                resultActivities.remove(resultActivities.get(resultActivities.size()-1));
+            }
+            if(responsLastDayOfWeek.isAfter(sunday) && !responsLastDayOfWeek.isEqual(responsFirstDayOfWeek)){
+                resultActivities.remove(i);
+            }
+
+        }
+        return resultActivities;
+
     }
 
     public void accessIsAlive(Integer chatId) throws IOException, InterruptedException {

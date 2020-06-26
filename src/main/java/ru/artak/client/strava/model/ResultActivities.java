@@ -20,6 +20,9 @@ public class ResultActivities {
 
     private String type;
 
+    @JsonProperty("utc_offset")
+    private Long utcOffset;
+
     public ResultActivities() {
     }
 
@@ -40,5 +43,8 @@ public class ResultActivities {
 
     public String getType() { return type; }
 
+    public Long getUtcOffset() {
+        return utcOffset;
+    }
 }
 

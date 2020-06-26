@@ -80,7 +80,7 @@ public class StravaService {
         Instant instantMonday = beforeToday.toInstant(ZoneOffset.UTC);
         Long before = instantMonday.getEpochSecond();
 
-        Instant instantSunday = afterToday.toInstant(ZoneOffset.MAX);
+        Instant instantSunday = afterToday.toInstant(ZoneOffset.UTC);
         Long after = instantSunday.getEpochSecond();
 
         return new WeekInterval(after, before);
