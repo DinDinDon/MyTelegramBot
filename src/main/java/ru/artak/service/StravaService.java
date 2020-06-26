@@ -45,7 +45,7 @@ public class StravaService {
         }
     }
 
-    public Number getRunningWeekDistance(Integer chatId) {
+    public Number getRunningWeekDistance(Integer chatId) throws IOException, InterruptedException {
         String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
         WeekInterval weekInterval = getWeekInterval();
         Long after = weekInterval.getAfter();
@@ -73,11 +73,11 @@ public class StravaService {
     }
 
     private WeekInterval getWeekInterval() {
-        LocalDateTime afterToday = LocalDateTime.of(LocalDate.now(), LocalTime.of(00, 00, 00))
+        LocalDateTime beforeToday = LocalDateTime.of(LocalDate.now(), LocalTime.of(00, 00, 00))
                 .with(DayOfWeek.MONDAY);
-        LocalDateTime beforeToday = LocalDateTime.now().with(DayOfWeek.SUNDAY).plusDays(1);
+        LocalDateTime afterToday = LocalDateTime.now().with(DayOfWeek.SUNDAY).plusDays(1);
 
-        Instant instantMonday = beforeToday.toInstant(ZoneOffset.MIN);
+        Instant instantMonday = beforeToday.toInstant(ZoneOffset.UTC);
         Long before = instantMonday.getEpochSecond();
 
         Instant instantSunday = afterToday.toInstant(ZoneOffset.MAX);

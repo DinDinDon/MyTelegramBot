@@ -3,7 +3,6 @@ package ru.artak.client.strava.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import ru.artak.client.strava.model.JsonDateDeserializer;
 
 import java.time.LocalDateTime;
 
@@ -16,7 +15,7 @@ public class ResultActivities {
     @JsonProperty("start_date_local")
     @JsonDeserialize(using = JsonDateDeserializer.class)
     private LocalDateTime startDate;
-
+    
     private String timezone;
 
     private String type;
@@ -40,5 +39,6 @@ public class ResultActivities {
     public String getTimezone() { return timezone; }
 
     public String getType() { return type; }
+
 }
 

@@ -52,7 +52,7 @@ public class StravaClient {
     public List<ResultActivities> getActivities(Integer chatId, String accessToken, Long after, Long before) throws IOException, InterruptedException {
         accessIsAlive(chatId);
         HttpRequest requestForGetActivities = HttpRequest.newBuilder()
-                .uri(URI.create(STRAVA_API_ADDRESS + "/athlete/activities?&after=" + after + "&before=" + before))
+                .uri(URI.create(STRAVA_API_ADDRESS + "/athlete/activities?&after=" + before + "&before=" + after))
                 .header("Authorization", "Bearer " + accessToken)
                 .GET()
                 .build();
@@ -60,7 +60,6 @@ public class StravaClient {
         HttpResponse<String> responseActivities = httpClientForStrava.send(requestForGetActivities, HttpResponse.BodyHandlers.ofString());
         List<ResultActivities> activities = mapper.readValue(responseActivities.body(), new TypeReference<>() {
         });
-        System.out.println();
 
         return activities;
     }
