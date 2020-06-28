@@ -13,7 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.*;
-import java.time.temporal.TemporalField;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -48,10 +48,10 @@ public class StravaClient {
         return mapper.readValue(stravaAccessToken.body(), StravaOauthResp.class);
     }
 
-    public List<ResultActivities> getActivities(Integer chatId, String accessToken, Long after, Long before) throws IOException, InterruptedException {
-        accessIsAlive(chatId);
+    public List<ResultActivities> getActivities(Integer chatId, String accessToken, Long from, Long to) throws IOException, InterruptedException {
+        checkAccessAndUpdate(chatId);
         HttpRequest requestForGetActivities = HttpRequest.newBuilder()
-                .uri(URI.create(STRAVA_API_ADDRESS + "/athlete/activities?&after=" + before + "&before=" + after))
+                .uri(URI.create(STRAVA_API_ADDRESS + "/athlete/activities?&before=" + to + "&after=" + from))
                 .header("Authorization", "Bearer " + accessToken)
                 .GET()
                 .build();
@@ -59,41 +59,22 @@ public class StravaClient {
         HttpResponse<String> responseActivities = httpClientForStrava.send(requestForGetActivities, HttpResponse.BodyHandlers.ofString());
         List<ResultActivities> activities = mapper.readValue(responseActivities.body(), new TypeReference<>() {
         });
-        List<ResultActivities> ccorrectActivities = getCorrectDateWithTimeZone(activities);
 
-        return ccorrectActivities;
+        return activities;
     }
 
-    private List<ResultActivities> getCorrectDateWithTimeZone(List<ResultActivities> resultActivities) {
-        LocalDateTime monday = LocalDateTime.of(LocalDate.now(),LocalTime.of(00,00,00)).with(DayOfWeek.MONDAY);
-        LocalDateTime sunday = LocalDateTime.of(LocalDate.now(),LocalTime.of(23,59,59)).with(DayOfWeek.SUNDAY);
-
-        for (int i = 0; i < resultActivities.size(); i++) {
-            LocalDateTime responsLastDayOfWeek = resultActivities.get(i).getStartDate();
-            LocalDateTime responsFirstDayOfWeek = resultActivities.get(resultActivities.size()-1).getStartDate();
-            if(responsFirstDayOfWeek.isBefore(monday) && !responsFirstDayOfWeek.isEqual(responsLastDayOfWeek)){
-                resultActivities.remove(resultActivities.get(resultActivities.size()-1));
-            }
-            if(responsLastDayOfWeek.isAfter(sunday) && !responsLastDayOfWeek.isEqual(responsFirstDayOfWeek)){
-                resultActivities.remove(i);
-            }
-
-        }
-        return resultActivities;
-
-    }
-
-    public void accessIsAlive(Integer chatId) throws IOException, InterruptedException {
-        Long timeToExpired = storage.getStravaCredentials(chatId).getTimeToExpired();
+    public void checkAccessAndUpdate(Integer chatId) throws IOException, InterruptedException {
+        StravaCredential credential = storage.getStravaCredentials(chatId);
+        Long timeToExpired = credential.getTimeToExpired();
+        String refreshToken = credential.getRefreshToken();
         LocalDateTime dateTimeToExpired = LocalDateTime.ofInstant(Instant.ofEpochSecond(timeToExpired), ZoneId.systemDefault());
         LocalDateTime today = LocalDateTime.now(ZoneId.systemDefault());
         if (today.isAfter(dateTimeToExpired)) {
-            updateAccessToken(chatId);
+            updateAccessToken(chatId, refreshToken);
         }
     }
 
-    private StravaCredential updateAccessToken(Integer chatId) throws IOException, InterruptedException {
-        String refreshToken = storage.getStravaCredentials(chatId).getRefreshToken();
+    private StravaCredential updateAccessToken(Integer chatId, String refreshToken) throws IOException, InterruptedException {
         StravaOauthResp strava = getUpdateAccessToken(refreshToken);
         StravaCredential stravaCredential = new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
 

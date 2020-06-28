@@ -88,13 +88,14 @@ public class TelegramService {
     }
 
     private void handleWeekDistance(Integer chatId) throws IOException, InterruptedException {
-        try {
-            Number weekDistance = stravaService.getRunningWeekDistance(chatId);
-            telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
-        } catch (Exception e) {
+        StravaCredential credential = storage.getStravaCredentials(chatId);
+        if (credential == null) {
             handleDefaultCommand(chatId, telegramNoAuthorizationText);
-            e.printStackTrace();
+            return;
         }
+        Number weekDistance = stravaService.getRunningWeekDistance(chatId);
+        telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
+
     }
 
     private void handleDefaultCommand(Integer chatId, String anyText) throws IOException, InterruptedException {
@@ -105,26 +106,28 @@ public class TelegramService {
         StravaCredential credential = storage.getStravaCredentials(chatId);
         if (credential != null) {
             handleDefaultCommand(chatId, whenUserAlreadyAuthorized);
-        }else {
-            storage.saveStateForUser(randomClientID, chatId);
-            telegramClient.sendOauthCommand(randomClientID, chatId);
+            return;
         }
+        storage.saveStateForUser(randomClientID, chatId);
+        telegramClient.sendOauthCommand(randomClientID, chatId);
+
     }
 
     private void handleDeauthorizeCommand(Integer chatId) throws IOException, InterruptedException {
         StravaCredential credential = storage.getStravaCredentials(chatId);
         if (credential == null) {
             telegramClient.sendSimpleText(chatId, telegramNoAuthorizationText);
-        } else {
-            String accessToken = credential.getAccessToken();
-            try {
-                stravaService.deauthorize(chatId, accessToken);
-                telegramClient.sendSimpleText(chatId, telegramDeauthorizeText);
-            } catch (Exception e) {
-                telegramClient.sendSimpleText(chatId, errorText);
-                e.printStackTrace();
-            }
+            return;
         }
+        String accessToken = credential.getAccessToken();
+        try {
+            stravaService.deauthorize(chatId, accessToken);
+            telegramClient.sendSimpleText(chatId, telegramDeauthorizeText);
+        } catch (Exception e) {
+            telegramClient.sendSimpleText(chatId, errorText);
+            e.printStackTrace();
+        }
+
     }
 
     private List<TelegramUserInfo> getAllTelegramUpdateUsers(GetUpdateTelegram getUpdateTelegram) {
