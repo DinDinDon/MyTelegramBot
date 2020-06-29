@@ -12,4 +12,7 @@ public interface Storage {
 
     StravaCredential getStravaCredentials(Integer chatId);
 
+    void removeUser(Integer chatId);
+
+
 }

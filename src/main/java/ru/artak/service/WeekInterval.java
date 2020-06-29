@@ -1,27 +1,27 @@
 package ru.artak.service;
 
 public class WeekInterval {
-    private Long after;
-    private Long befor;
+    private Long from;
+    private Long to;
 
     public WeekInterval(Long after, Long befor) {
-        this.after = after;
-        this.befor = befor;
+        this.from = after;
+        this.to = befor;
     }
 
-    public Long getAfter() {
-        return after;
+    public Long getFrom() {
+        return from;
     }
 
-    public void setAfter(Long after) {
-        this.after = after;
+    public void setFrom(Long from) {
+        this.from = from;
     }
 
-    public Long getBefor() {
-        return befor;
+    public Long getTo() {
+        return to;
     }
 
-    public void setBefor(Long befor) {
-        this.befor = befor;
+    public void setTo(Long to) {
+        this.to = to;
     }
 }

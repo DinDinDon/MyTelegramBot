@@ -1,5 +1,6 @@
 package ru.artak.service;
 
+import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.client.telegram.model.GetUpdateTelegram;
 import ru.artak.storage.Storage;
@@ -19,13 +20,22 @@ public class TelegramService {
 
     private final Storage storage;
 
-    private final String telegramBotDefaultText = "Для начало работы выберите  /auth";
+    private final String telegramBotDefaultText =
+            "Телеграм бот для работы с ресурсом Strava.com\n" +
+                    "\n" +
+                    "Список доступных команд:\n" +
+                    "\n" +
+                    "/auth - авторизация через OAuth\n" +
+                    "/weekdistance - набеганное расстояние за календарную неделю\n" +
+                    "/deauthorize - деавторизация\n ";
+
+    private final String whenUserAlreadyAuthorized = "Вы уже авторизованы!";
+    private final String telegramNoAuthorizationText = "Вы не авторизованы. Используйте команду /auth";
+    private final String telegramDeauthorizeText = "Вы деавторизированы!";
 
     private final String telegramWeekDistanceText = "Вы пробежали ";
+    private final String errorText = "Ошибка, пожалуйста повторите позднее ";
 
-    private final String telegramNoAuthorizationText = "Вы не авторизованы";
-
-    private final String telegramDeauthorizeText = "Вы деавторизированы!";
 
     public TelegramService(TelegramClient telegramClient, Storage storage, StravaService stravaService) {
         this.telegramClient = telegramClient;
@@ -56,7 +66,10 @@ public class TelegramService {
                                     handleAuthCommand(randomClientID, chatId);
                                     break;
                                 case "/weekdistance":
-                                    handleWeekDistance(chatId, telegramWeekDistanceText);
+                                    handleWeekDistance(chatId);
+                                    break;
+                                case "/deauthorize":
+                                    handleDeauthorizeCommand(chatId);
                                     break;
                                 default:
                                     handleDefaultCommand(chatId, telegramBotDefaultText);
@@ -71,31 +84,49 @@ public class TelegramService {
                 }
             }
         }
+
     }
 
-    private void handleWeekDistance(Integer chatId, String telegramWeekDistanceText) throws IOException, InterruptedException {
-        try {
-            Number weekDistance = stravaService.getRunningWeekDistance(chatId);
-            telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
-        } catch (Exception e) {
+    private void handleWeekDistance(Integer chatId) throws IOException, InterruptedException {
+        StravaCredential credential = storage.getStravaCredentials(chatId);
+        if (credential == null) {
             handleDefaultCommand(chatId, telegramNoAuthorizationText);
-            e.printStackTrace();
+            return;
         }
+        Number weekDistance = stravaService.getRunningWeekDistance(chatId);
+        telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
+
     }
 
-    private void handleDefaultCommand(Integer chatId, String telegramBotStartText) throws IOException, InterruptedException {
-        telegramClient.sendSimpleText(chatId, telegramBotStartText);
+    private void handleDefaultCommand(Integer chatId, String anyText) throws IOException, InterruptedException {
+        telegramClient.sendSimpleText(chatId, anyText);
     }
 
     private void handleAuthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
+        StravaCredential credential = storage.getStravaCredentials(chatId);
+        if (credential != null) {
+            handleDefaultCommand(chatId, whenUserAlreadyAuthorized);
+            return;
+        }
         storage.saveStateForUser(randomClientID, chatId);
-
         telegramClient.sendOauthCommand(randomClientID, chatId);
 
     }
 
-    private void handleDeauthorizeCommand(Integer chatId, String telegramDeauthorizeText) throws IOException, InterruptedException {
-        telegramClient.sendSimpleText(chatId, telegramDeauthorizeText);
+    private void handleDeauthorizeCommand(Integer chatId) throws IOException, InterruptedException {
+        StravaCredential credential = storage.getStravaCredentials(chatId);
+        if (credential == null) {
+            telegramClient.sendSimpleText(chatId, telegramNoAuthorizationText);
+            return;
+        }
+        String accessToken = credential.getAccessToken();
+        try {
+            stravaService.deauthorize(chatId, accessToken);
+            telegramClient.sendSimpleText(chatId, telegramDeauthorizeText);
+        } catch (Exception e) {
+            telegramClient.sendSimpleText(chatId, errorText);
+            e.printStackTrace();
+        }
 
     }
 
