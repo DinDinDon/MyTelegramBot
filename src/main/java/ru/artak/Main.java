@@ -1,12 +1,17 @@
 package ru.artak;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import liquibase.exception.LiquibaseException;
+import liquibase.integration.spring.SpringLiquibase;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.server.BotHttpServer;
 import ru.artak.service.StravaService;
 import ru.artak.service.TelegramService;
-import ru.artak.storage.InMemoryStorage;
+import ru.artak.storage.DbMemoryStorage;
 
 import java.io.IOException;
 
@@ -34,7 +39,7 @@ public class Main {
         if (StringUtils.isBlank(stravaClientSecret)) stravaClientSecret = args[1];
         if (stravaClientId == 0) stravaClientId = Integer.parseInt(args[2]);
         if (StringUtils.isBlank(stravaBaseRedirectUrl)) stravaBaseRedirectUrl = "http://localhost:8080";
-
+    
         if (StringUtils.isBlank(telegramToken)) {
             throw new IllegalArgumentException("doesn't define telegram token");
         }
@@ -44,16 +49,45 @@ public class Main {
         if (stravaClientId == 0) {
             throw new IllegalArgumentException("doesn't define strava client id");
         }
-
+    
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setDriverClassName("org.postgresql.Driver");
+        hikariConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/my_telegram_bot");
+        hikariConfig.setUsername("postgres");
+        hikariConfig.setPassword("password");
+    
+        hikariConfig.setMaximumPoolSize(5);
+        hikariConfig.setConnectionTestQuery("SELECT 1");
+        hikariConfig.setPoolName("myHikariCP");
+    
+        hikariConfig.addDataSourceProperty("dataSource.cachePrepStmts", "true");
+        hikariConfig.addDataSourceProperty("dataSource.prepStmtCacheSize", "250");
+        hikariConfig.addDataSourceProperty("dataSource.prepStmtCacheSqlLimit", "2048");
+        hikariConfig.addDataSourceProperty("dataSource.useServerPrepStmts", "true");
+    
+        HikariDataSource dataSource = new HikariDataSource(hikariConfig);
+    
+        SpringLiquibase liquibase = new SpringLiquibase();
+        liquibase.setChangeLog("classpath:liquibase-changeLog.xml");
+        liquibase.setDataSource(dataSource);
+    
+        try {
+            liquibase.afterPropertiesSet();
+        } catch (LiquibaseException e) {
+            throw new RuntimeException("liquibase error", e);
+        }
+    
+        NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+    
         // инициализация зависимостей
         TelegramClient telegramClient = new TelegramClient(telegramToken, stravaClientId, stravaBaseRedirectUrl);
-
-        InMemoryStorage inMemoryStorage = InMemoryStorage.getInstance();
-
+    
+        DbMemoryStorage inMemoryStorage = DbMemoryStorage.getInstance(namedParameterJdbcTemplate);
+    
         StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret, inMemoryStorage);
         StravaService stravaService = new StravaService(telegramClient, inMemoryStorage, stravaClient);
         BotHttpServer botHttpServer = new BotHttpServer(stravaService, port);
-
+    
         // запуск сервера
         Thread httpServerThread;
         try {
