@@ -11,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 
 public class TelegramClient {
@@ -41,21 +42,21 @@ public class TelegramClient {
         return mapper.readValue(telegramGetUpdateResponse.body(), GetUpdateTelegram.class);
     }
 
-    public void sendSimpleText(Integer chatId, String commandText) throws IOException, InterruptedException {
+    public void sendSimpleText(Long chatId, String commandText) throws IOException, InterruptedException {
         URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + telegramToken + "/sendMessage?chat_id=" +
                 chatId + "&text=" + URLEncoder.encode(commandText, StandardCharsets.UTF_8));
         sendMessage(telegramDefaultResponseUrl);
 
     }
 
-    public void sendDistanceText(Integer chatId, String commandText, Number weekDistance) throws IOException, InterruptedException {
+    public void sendDistanceText(Long chatId, String commandText, Number weekDistance) throws IOException, InterruptedException {
         URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + telegramToken + "/sendMessage?chat_id=" +
                 chatId + "&text=" + URLEncoder.encode(commandText, StandardCharsets.UTF_8) + weekDistance + "Км");
         sendMessage(telegramDefaultResponseUrl);
 
     }
 
-    public void sendOauthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
+    public void sendOauthCommand(UUID randomClientID, Long chatId) throws IOException, InterruptedException {
         URI oauthUrl = URI.create(TELEGRAM_BASE_URL + telegramToken + "/sendMessage?chat_id=" + chatId + "&text="
                 + URLEncoder.encode(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
                 stravaClientId + "&state=" + randomClientID + "&response_type=code&redirect_uri=" + baseRedirectUrl +

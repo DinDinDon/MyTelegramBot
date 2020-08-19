@@ -26,10 +26,10 @@ public class StravaService {
         this.stravaClient = stravaClient;
     }
 
-    public void obtainCredentials(String state, String authorizationCode) throws IOException, InterruptedException {
+    public void obtainCredentials(UUID state, String authorizationCode) throws IOException, InterruptedException {
         StravaCredential stravaCredential = getCredentials(authorizationCode);
 
-        Integer chatID = storage.getChatIdByState(state);
+        Long chatID = storage.getChatIdByState(state);
         storage.saveStravaCredentials(chatID, stravaCredential);
         telegramClient.sendSimpleText(chatID, AUTHORIZED_TEXT);
 
@@ -45,7 +45,7 @@ public class StravaService {
         }
     }
 
-    public Number getRunningWeekDistance(Integer chatId) throws IOException, InterruptedException {
+    public Number getRunningWeekDistance(Long chatId) throws IOException, InterruptedException {
         String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
         WeekInterval weekInterval = getWeekInterval();
         Long from = weekInterval.getFrom();
@@ -92,7 +92,7 @@ public class StravaService {
         );
     }
 
-    public void deauthorize(Integer chatId, String accessToken) throws IOException, InterruptedException {
+    public void deauthorize(Long chatId, String accessToken) throws IOException, InterruptedException {
         stravaClient.deauthorizeUser(accessToken);
         storage.removeUser(chatId);
     }

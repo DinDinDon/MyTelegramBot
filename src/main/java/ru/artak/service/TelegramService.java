@@ -44,7 +44,8 @@ public class TelegramService {
     }
 
     public void sendGet() {
-        final String randomClientID = UUID.randomUUID().toString().replace("-", "");
+//        final String randomClientID = UUID.randomUUID().toString().replace("-", "");
+        final UUID randomClientID = UUID.randomUUID();
         Integer telegramOffset = 0;
 
         while (true) {
@@ -57,7 +58,7 @@ public class TelegramService {
                     for (TelegramUserInfo id : updateIds) {
                         Integer lastUpdateId = getUpdateTelegram.getResult().get(getUpdateTelegram.getResult().size() - 1).getUpdateId();
                         Integer updateId = id.getUpdateId();
-                        Integer chatId = id.getChatId();
+                        Long chatId = id.getChatId();
                         String text = id.getText();
 
                         if (updateId <= lastUpdateId) {
@@ -87,7 +88,7 @@ public class TelegramService {
 
     }
 
-    private void handleWeekDistance(Integer chatId) throws IOException, InterruptedException {
+    private void handleWeekDistance(Long chatId) throws IOException, InterruptedException {
         StravaCredential credential = storage.getStravaCredentials(chatId);
         if (credential == null) {
             handleDefaultCommand(chatId, telegramNoAuthorizationText);
@@ -98,13 +99,13 @@ public class TelegramService {
 
     }
 
-    private void handleDefaultCommand(Integer chatId, String anyText) throws IOException, InterruptedException {
+    private void handleDefaultCommand(Long chatId, String anyText) throws IOException, InterruptedException {
         telegramClient.sendSimpleText(chatId, anyText);
     }
 
-    private void handleAuthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
+    private void handleAuthCommand(UUID randomClientID, Long chatId) throws IOException, InterruptedException {
         StravaCredential credential = storage.getStravaCredentials(chatId);
-        if (credential != null) {
+        if (credential.getAccessToken() != null) {
             handleDefaultCommand(chatId, whenUserAlreadyAuthorized);
             return;
         }
@@ -113,9 +114,9 @@ public class TelegramService {
 
     }
 
-    private void handleDeauthorizeCommand(Integer chatId) throws IOException, InterruptedException {
+    private void handleDeauthorizeCommand(Long chatId) throws IOException, InterruptedException {
         StravaCredential credential = storage.getStravaCredentials(chatId);
-        if (credential == null) {
+        if (credential.getAccessToken() == null) {
             telegramClient.sendSimpleText(chatId, telegramNoAuthorizationText);
             return;
         }

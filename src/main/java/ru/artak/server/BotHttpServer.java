@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 
 public class BotHttpServer {
@@ -37,11 +38,11 @@ public class BotHttpServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             Map<String, String> stateAndAuthCode = getStateAndAuthCode(exchange);
-            String state = stateAndAuthCode.get("state");
+            UUID state = UUID.fromString(stateAndAuthCode.get("state"));
             String authorizationCode = stateAndAuthCode.get("code");
             String text = "Authorization failed. StravaBot";
 
-            if (!StringUtils.isBlank(state) && !StringUtils.isBlank(authorizationCode)) {
+            if (!StringUtils.isBlank(state.toString()) && !StringUtils.isBlank(authorizationCode)) {
                 try {
                     stravaService.obtainCredentials(state, authorizationCode);
                     text = "GREAT, YOU ARE AUTHORIZED. StravaBot";

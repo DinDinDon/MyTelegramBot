@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Chat {
-    private Integer id;
+    private Long id;
     @JsonProperty("first_name")
     private String firstName;
     @JsonProperty("last_name")
@@ -15,7 +15,7 @@ public class Chat {
     public Chat() {
     }
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
