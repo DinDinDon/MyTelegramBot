@@ -132,7 +132,7 @@ public class Main {
         hikariConfig.setUsername(userName);
         hikariConfig.setPassword(password);
 
-        hikariConfig.setMaximumPoolSize(4);
+        hikariConfig.setMaximumPoolSize(2);
         hikariConfig.setConnectionTestQuery("SELECT 1");
         hikariConfig.setPoolName("myHikariCP");
 
