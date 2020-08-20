@@ -64,7 +64,6 @@ public class Main {
         if (StringUtils.isBlank(jdbcUrl)) jdbcUrl = args[4];
         if (StringUtils.isBlank(userName)) userName = args[5];
         if (StringUtils.isBlank(password)) password = args[6];
-
         if (StringUtils.isBlank(driverName)) {
             throw new IllegalArgumentException("doesn't define DATABASE driver name");
         }
@@ -133,7 +132,7 @@ public class Main {
         hikariConfig.setUsername(userName);
         hikariConfig.setPassword(password);
 
-        hikariConfig.setMaximumPoolSize(5);
+        hikariConfig.setMaximumPoolSize(4);
         hikariConfig.setConnectionTestQuery("SELECT 1");
         hikariConfig.setPoolName("myHikariCP");
 
