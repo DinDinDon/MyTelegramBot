@@ -92,7 +92,7 @@ public class Main {
             logger.info("doesn't define DATABASE password");
             throw new IllegalArgumentException("doesn't define DATABASE password");
         }
-        if (StringUtils.isNotBlank(poolSize)) {
+        if (StringUtils.isBlank(poolSize)) {
             logger.info("doesn't define DATABASE maximum pool size");
             throw new IllegalArgumentException("doesn't define DATABASE maximum pool size");
         }
