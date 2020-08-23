@@ -1,5 +1,6 @@
 package ru.artak.service;
 
+import org.apache.log4j.Logger;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.strava.model.ResultActivities;
@@ -14,6 +15,7 @@ import java.util.*;
 
 public class StravaService {
 
+    private static final Logger logger = Logger.getLogger(StravaService.class);
     private static final String AUTHORIZED_TEXT = "Strava аккаунт был успешно подключен!";
     private final String type = "Run";
     private final TelegramClient telegramClient;
@@ -31,6 +33,7 @@ public class StravaService {
 
         Long chatID = storage.getChatIdByState(state);
         storage.saveStravaCredentials(chatID, stravaCredential);
+        logger.info("saved credentials for user - " + chatID);
         telegramClient.sendSimpleText(chatID, AUTHORIZED_TEXT);
 
     }

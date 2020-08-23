@@ -1,6 +1,7 @@
 package ru.artak.client.telegram;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.log4j.Logger;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.model.GetUpdateTelegram;
 
@@ -15,6 +16,8 @@ import java.util.UUID;
 
 
 public class TelegramClient {
+
+    private static final Logger logger = Logger.getLogger(TelegramClient.class);
 
     public static final String TELEGRAM_BASE_URL = "https://api.telegram.org/bot";
 
@@ -53,6 +56,7 @@ public class TelegramClient {
         URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + telegramToken + "/sendMessage?chat_id=" +
                 chatId + "&text=" + URLEncoder.encode(commandText, StandardCharsets.UTF_8) + weekDistance + "Км");
         sendMessage(telegramDefaultResponseUrl);
+        logger.info("sent method /weekDistance data to user");
 
     }
 
@@ -62,6 +66,7 @@ public class TelegramClient {
                 stravaClientId + "&state=" + randomClientID + "&response_type=code&redirect_uri=" + baseRedirectUrl +
                 "/exchange_token&approval_prompt=force&&scope=activity:read", StandardCharsets.UTF_8));
         sendMessage(oauthUrl);
+        logger.info("sent to user Oauth link");
     }
 
     private HttpResponse<String> sendMessage(URI uri) throws IOException, InterruptedException {

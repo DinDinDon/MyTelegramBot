@@ -5,7 +5,7 @@ import ru.artak.client.strava.StravaCredential;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-
+@Deprecated
 public class InMemoryStorage implements Storage {
 
     private static volatile InMemoryStorage instance;
@@ -24,7 +24,6 @@ public class InMemoryStorage implements Storage {
         }
         return instance;
     }
-
     private InMemoryStorage() {
     }
 

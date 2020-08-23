@@ -9,7 +9,15 @@
     </changeSet>
 
     <changeSet id="2" author="artak">
-        <sqlFile path="liquibase/scripts/2_add_table.sql" relativeToChangelogFile="true" stripComments="true"/>
+        <sqlFile path="liquibase/scripts/2_add_table_user_credentials.sql" relativeToChangelogFile="true" stripComments="true"/>
+    </changeSet>
+
+    <changeSet id="3" author="artak">
+        <sqlFile path="liquibase/scripts/3_add_column_in_table_users.sql" relativeToChangelogFile="true" stripComments="true"/>
+    </changeSet>
+
+    <changeSet id="4" author="artak">
+        <sqlFile path="liquibase/scripts/4_add_index_for_users_column_state_and_deleted.sql" relativeToChangelogFile="true" stripComments="true"/>
     </changeSet>
 
 </databaseChangeLog>

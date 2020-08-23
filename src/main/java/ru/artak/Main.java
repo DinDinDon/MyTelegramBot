@@ -5,20 +5,23 @@ import com.zaxxer.hikari.HikariDataSource;
 import liquibase.exception.LiquibaseException;
 import liquibase.integration.spring.SpringLiquibase;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.server.BotHttpServer;
 import ru.artak.service.StravaService;
 import ru.artak.service.TelegramService;
-import ru.artak.storage.DbMemoryStorage;
+import ru.artak.storage.DbStorage;
 
 import java.io.IOException;
 
 public class Main {
+    private static final Logger logger = Logger.getLogger(Main.class);
 
     public static void main(String[] args) {
         // чтение конфигурации, должны быть заданы параметры запуска или переменные окружения. Приоритет у переменных окружения.
+        logger.info("Reading of configuration data started");
         String telegramToken = System.getenv("TELEGRAM_TOKEN");
         String stravaClientSecret = System.getenv("STRAVA_CLIENT_SECRET");
         String stravaBaseRedirectUrl = System.getenv("STRAVA_BASE_REDIRECT_URL");
@@ -32,6 +35,7 @@ public class Main {
         if (StringUtils.isNotBlank(portString)) port = Integer.parseInt(portString);
 
         if (args.length < 3 && (StringUtils.isBlank(telegramToken) && stravaClientId == 0 && StringUtils.isBlank(stravaClientSecret))) {
+            logger.info("Please define required configuration variables");
             throw new IllegalArgumentException("Please define required configuration variables");
         }
 
@@ -41,12 +45,15 @@ public class Main {
         if (StringUtils.isBlank(stravaBaseRedirectUrl)) stravaBaseRedirectUrl = "http://localhost:8080";
 
         if (StringUtils.isBlank(telegramToken)) {
+            logger.info("doesn't define telegram token");
             throw new IllegalArgumentException("doesn't define telegram token");
         }
         if (StringUtils.isBlank(stravaClientSecret)) {
+            logger.info("doesn't define strava client secret");
             throw new IllegalArgumentException("doesn't define strava client secret");
         }
         if (stravaClientId == 0) {
+            logger.info("doesn't define strava client id");
             throw new IllegalArgumentException("doesn't define strava client id");
         }
 
@@ -54,9 +61,13 @@ public class Main {
         String jdbcUrl = System.getenv("JDBC_URL");
         String userName = System.getenv("USER_NAME");
         String password = System.getenv("PASSWORD");
+        int maximumPoolSize = 0;
+        String poolSize = System.getenv("MAXIMUM_POOL_SIZE");
+        if (StringUtils.isNotBlank(poolSize)) maximumPoolSize = Integer.parseInt(poolSize);
 
-        if (args.length < 7 && (StringUtils.isBlank(driverName) && StringUtils.isBlank(jdbcUrl) && StringUtils.isBlank(userName)
-                && StringUtils.isBlank(password))) {
+        if (args.length < 8 && (StringUtils.isBlank(driverName) && StringUtils.isBlank(jdbcUrl) && StringUtils.isBlank(userName)
+                && StringUtils.isBlank(password) && StringUtils.isNotBlank(poolSize))) {
+            logger.info("Please define required DATABASE configuration variables");
             throw new IllegalArgumentException("Please define required DATABASE configuration variables");
         }
 
@@ -64,82 +75,87 @@ public class Main {
         if (StringUtils.isBlank(jdbcUrl)) jdbcUrl = args[4];
         if (StringUtils.isBlank(userName)) userName = args[5];
         if (StringUtils.isBlank(password)) password = args[6];
+        if (maximumPoolSize == 0) maximumPoolSize = Integer.parseInt(args[7]);
         if (StringUtils.isBlank(driverName)) {
+            logger.info("doesn't define DATABASE driver name");
             throw new IllegalArgumentException("doesn't define DATABASE driver name");
         }
         if (StringUtils.isBlank(jdbcUrl)) {
+            logger.info("doesn't define DATABASE JDBC URL");
             throw new IllegalArgumentException("doesn't define DATABASE JDBC URL");
         }
-          if (StringUtils.isBlank(userName)) {
+        if (StringUtils.isBlank(userName)) {
+            logger.info("doesn't define DATABASE user name");
             throw new IllegalArgumentException("doesn't define DATABASE user name");
         }
-          if (StringUtils.isBlank(password)) {
+        if (StringUtils.isBlank(password)) {
+            logger.info("doesn't define DATABASE password");
             throw new IllegalArgumentException("doesn't define DATABASE password");
         }
+        if (StringUtils.isNotBlank(poolSize)) {
+            logger.info("doesn't define DATABASE maximum pool size");
+            throw new IllegalArgumentException("doesn't define DATABASE maximum pool size");
+        }
 
-        HikariDataSource dataSource = getHikariDataSource(driverName, jdbcUrl, userName, password);
+        HikariDataSource dataSource = getHikariDataSource(driverName, jdbcUrl, userName, password, maximumPoolSize);
         SpringLiquibase liquibase = getLiquibase(dataSource);
 
 
         try {
             liquibase.afterPropertiesSet();
         } catch (LiquibaseException e) {
-            throw new RuntimeException("liquibase error", e);
+            logger.info("liquibase could not start, check configuration ", e);
+            throw new RuntimeException("liquibase could not start, check configuration ", e);
         }
-
-        NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+        logger.info("finished reading configuration data");
 
         // инициализация зависимостей
+        logger.info("dependency initialization");
+        NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+        DbStorage dbStorage = DbStorage.getInstance(namedParameterJdbcTemplate);
+
         TelegramClient telegramClient = new TelegramClient(telegramToken, stravaClientId, stravaBaseRedirectUrl);
-
-        DbMemoryStorage inMemoryStorage = DbMemoryStorage.getInstance(namedParameterJdbcTemplate);
-
-        StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret, inMemoryStorage);
-        StravaService stravaService = new StravaService(telegramClient, inMemoryStorage, stravaClient);
+        StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret, dbStorage);
+        StravaService stravaService = new StravaService(telegramClient, dbStorage, stravaClient);
         BotHttpServer botHttpServer = new BotHttpServer(stravaService, port);
 
         // запуск сервера
+        logger.info("server start");
         Thread httpServerThread;
         try {
             httpServerThread = new Thread(() -> {
                 try {
                     botHttpServer.run();
                 } catch (IOException e) {
+                    logger.info("http server doesn't started", e);
                     throw new RuntimeException("http server doesn't started", e);
                 }
             });
         } catch (Exception e) {
+            logger.info("error on create http server thread", e);
             throw new RuntimeException("error on create http server thread", e);
         }
         httpServerThread.start();
-        System.out.println("started http server");
+        logger.info("started http server");
 
         // инициализация и запуск обработчика запросов telegram api
-        TelegramService telegramService = new TelegramService(telegramClient, inMemoryStorage, stravaService);
-        System.out.println("starting telegram bot handler");
+        TelegramService telegramService = new TelegramService(telegramClient, dbStorage, stravaService);
+        logger.info("starting telegram bot handler");
         try {
             telegramService.sendGet();
         } catch (Throwable e) {
-            e.printStackTrace();
+            logger.error("telegramService dosn't work", e);
         }
 
     }
 
-    private static HikariDataSource getHikariDataSource(String driverName, String jdbcUrl, String userName, String password) {
+    private static HikariDataSource getHikariDataSource(String driverName, String jdbcUrl, String userName, String password, int maximumPoolSize) {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setDriverClassName(driverName);
         hikariConfig.setJdbcUrl(jdbcUrl);
         hikariConfig.setUsername(userName);
         hikariConfig.setPassword(password);
-
-        hikariConfig.setMaximumPoolSize(2);
-        hikariConfig.setConnectionTestQuery("SELECT 1");
-        hikariConfig.setPoolName("myHikariCP");
-
-        hikariConfig.addDataSourceProperty("dataSource.cachePrepStmts", "true");
-        hikariConfig.addDataSourceProperty("dataSource.prepStmtCacheSize", "250");
-        hikariConfig.addDataSourceProperty("dataSource.prepStmtCacheSqlLimit", "2048");
-        hikariConfig.addDataSourceProperty("dataSource.useServerPrepStmts", "true");
+        hikariConfig.setMaximumPoolSize(maximumPoolSize);
 
         HikariDataSource dataSource = new HikariDataSource(hikariConfig);
 

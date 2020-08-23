@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 import ru.artak.service.StravaService;
 
 import java.io.IOException;
@@ -15,9 +16,10 @@ import java.util.UUID;
 
 
 public class BotHttpServer {
+    private static final Logger logger = Logger.getLogger(BotHttpServer.class);
 
     private final StravaService stravaService;
-    
+
     private final int port;
 
     public BotHttpServer(StravaService stravaService, int port) {
@@ -40,6 +42,7 @@ public class BotHttpServer {
             Map<String, String> stateAndAuthCode = getStateAndAuthCode(exchange);
             UUID state = UUID.fromString(stateAndAuthCode.get("state"));
             String authorizationCode = stateAndAuthCode.get("code");
+            logger.info("the server received a response from Strava");
             String text = "Authorization failed. StravaBot";
 
             if (!StringUtils.isBlank(state.toString()) && !StringUtils.isBlank(authorizationCode)) {
@@ -47,7 +50,7 @@ public class BotHttpServer {
                     stravaService.obtainCredentials(state, authorizationCode);
                     text = "GREAT, YOU ARE AUTHORIZED. StravaBot";
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.error("failed to save credentials ", e);
                 }
             }
             writeResponse(exchange, text);
