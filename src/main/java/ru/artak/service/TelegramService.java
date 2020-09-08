@@ -101,7 +101,7 @@ public class TelegramService {
             handleDefaultCommand(chatId, telegramNoAuthorizationText);
             return;
         }
-        Number weekDistance = stravaService.getRunningWeekDistance(chatId);
+        Number weekDistance = stravaService.getRunningWeekDistance(chatId, credential);
         telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
 
     }

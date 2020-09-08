@@ -49,12 +49,11 @@ public class StravaService {
         }
     }
 
-    public Number getRunningWeekDistance(Long chatId) throws IOException, InterruptedException {
-        String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
+    public Number getRunningWeekDistance(Long chatId, StravaCredential credential) throws IOException, InterruptedException {
         WeekInterval weekInterval = getWeekInterval();
         Long from = weekInterval.getFrom();
         Long to = weekInterval.getTo();
-        List<ResultActivities> responseActivities = stravaClient.getActivities(chatId, accessToken, from, to);
+        List<ResultActivities> responseActivities = stravaClient.getActivities(chatId, credential, from, to);
         List<ResultActivities> correctActivities = getCorrectDateWithTimeZone(responseActivities);
         float resultRunningDistance = getRunningDistanceFormat(correctActivities);
 

@@ -50,8 +50,8 @@ public class StravaClient {
         return mapper.readValue(stravaAccessToken.body(), StravaOauthResp.class);
     }
 
-    public List<ResultActivities> getActivities(Long chatId, String accessToken, Long from, Long to) throws IOException, InterruptedException {
-        String accessTokenUpdate = checkAccessAndUpdate(chatId);
+    public List<ResultActivities> getActivities(Long chatId, StravaCredential credential, Long from, Long to) throws IOException, InterruptedException {
+        String accessTokenUpdate = checkAccessAndUpdate(chatId, credential);
 
         HttpRequest requestForGetActivities = HttpRequest.newBuilder()
                 .uri(URI.create(STRAVA_API_ADDRESS + "/athlete/activities?&before=" + to + "&after=" + from))
@@ -66,8 +66,7 @@ public class StravaClient {
         return activities;
     }
 
-    public String checkAccessAndUpdate(Long chatId) throws IOException, InterruptedException {
-        StravaCredential credential = storage.getStravaCredentials(chatId);
+    public String checkAccessAndUpdate(Long chatId, StravaCredential credential) throws IOException, InterruptedException {
         Long timeToExpired = credential.getTimeToExpired();
         String refreshToken = credential.getRefreshToken();
         LocalDateTime dateTimeToExpired = LocalDateTime.ofInstant(Instant.ofEpochSecond(timeToExpired), ZoneId.systemDefault());
