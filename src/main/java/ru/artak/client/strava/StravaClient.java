@@ -3,7 +3,8 @@ package ru.artak.client.strava;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.artak.client.strava.model.ResultActivities;
 import ru.artak.storage.Storage;
 
@@ -21,7 +22,7 @@ import static java.net.http.HttpRequest.BodyPublishers.noBody;
 
 public class StravaClient {
 
-    private static final Logger logger = Logger.getLogger(StravaClient.class);
+    private static final Logger logger = LogManager.getLogger(StravaClient.class);
     public static final String STRAVA_OAUTH_ADDRESS = "https://www.strava.com/oauth/";
     public static final String STRAVA_API_ADDRESS = "https://www.strava.com/api/v3";
     private final ObjectMapper mapper = new ObjectMapper();
@@ -73,7 +74,7 @@ public class StravaClient {
         LocalDateTime today = LocalDateTime.now(ZoneId.systemDefault());
         if (today.isAfter(dateTimeToExpired)) {
             credential = updateAccessToken(chatId, refreshToken);
-            logger.info("update accessToken");
+            logger.info("update accessToken for user - {}", chatId);
             return credential.getAccessToken();
         }
 
@@ -82,6 +83,7 @@ public class StravaClient {
 
     private StravaCredential updateAccessToken(Long chatId, String refreshToken) throws IOException, InterruptedException {
         StravaOauthResp strava = getUpdateAccessToken(refreshToken);
+        logger.debug("Update accessToken for user - {}, refreshToken - {}", chatId, refreshToken);
         StravaCredential stravaCredential = new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
 
         storage.saveStravaCredentials(chatId, stravaCredential);

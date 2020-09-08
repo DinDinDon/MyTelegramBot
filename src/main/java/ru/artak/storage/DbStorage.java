@@ -1,10 +1,21 @@
 package ru.artak.storage;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.dao.support.DataAccessUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallbackWithoutResult;
+import org.springframework.transaction.support.TransactionTemplate;
 import ru.artak.client.strava.StravaCredential;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -12,16 +23,20 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 public class DbStorage implements Storage {
+    private static final Logger logger = LogManager.getLogger(DbStorage.class);
+
 
     private static volatile DbStorage instance;
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public static DbStorage getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+    private final HikariDataSource dataSource;
+
+    public static DbStorage getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate, HikariDataSource dataSource) {
         if (instance == null) {
             synchronized (DbStorage.class) {
                 if (instance == null) {
-                    instance = new DbStorage(namedParameterJdbcTemplate);
+                    instance = new DbStorage(namedParameterJdbcTemplate,dataSource);
                 }
             }
         }
@@ -29,8 +44,27 @@ public class DbStorage implements Storage {
         return instance;
     }
 
-    private DbStorage(NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+    private DbStorage(NamedParameterJdbcTemplate namedParameterJdbcTemplate, HikariDataSource dataSource) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+        this.dataSource = dataSource;
+    }
+
+    private StravaCredential extractData(ResultSet resultSet) throws SQLException {
+
+        if (resultSet.next()) {
+            String accessToken = resultSet.getString("access_token");
+            String refreshToken = resultSet.getString("refresh_token");
+            Timestamp timeToExpiredSql = resultSet.getTimestamp("time_to_expired");
+            Long timeToExpired = timeToExpiredSql.toInstant().getEpochSecond();
+            boolean status = resultSet.getBoolean("deleted");
+
+            StravaCredential stravaCredential = new StravaCredential(accessToken, refreshToken, timeToExpired);
+            stravaCredential.setStatus(status);
+
+            return stravaCredential;
+        }
+
+        return null;
     }
 
     @Override
@@ -40,7 +74,7 @@ public class DbStorage implements Storage {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("chat_id", chatId);
         params.addValue("state", state);
-
+        logger.info("saved user data for user - {}, randomClientID - {}", chatId, state);
         namedParameterJdbcTemplate.update(sql, params);
     }
 
@@ -84,39 +118,37 @@ public class DbStorage implements Storage {
         params.addValue("chat_id", chatId);
 
         StravaCredential result = namedParameterJdbcTemplate.query(sql, params, resultSet -> {
-
-            if (resultSet.next()) {
-                String accessToken = resultSet.getString("access_token");
-                String refreshToken = resultSet.getString("refresh_token");
-                Timestamp timeToExpiredSql = resultSet.getTimestamp("time_to_expired");
-                Long timeToExpired = timeToExpiredSql.toInstant().getEpochSecond();
-                boolean status = resultSet.getBoolean("deleted");
-
-                StravaCredential stravaCredential = new StravaCredential(accessToken, refreshToken, timeToExpired);
-                stravaCredential.setStatus(status);
-
-                return stravaCredential;
-            }
-
-            return new StravaCredential(null, null, 0L);
+            return extractData(resultSet);
         });
 
         return result;
     }
 
+
     @Override
     public void removeUser(Long chatId) {
-        String sqlFroUsers = "UPDATE users SET deleted = true WHERE chat_id = :chat_id";
-        String sqlForCredentials = "DELETE FROM user_credentials WHERE users_id = (SELECT id FROM users WHERE chat_id = :chatId)";
+        final DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSource);
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transactionTemplate.setName("TransactionDeleteUser");
+
+        String sqlFroUsers = "UPDATE users SET deleted = true WHERE chat_id = :chat_id RETURNING id";
+        String sqlForCredentials = "DELETE FROM user_credentials WHERE users_id = :id";
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("chat_id", chatId);
 
-        MapSqlParameterSource parameterSource = new MapSqlParameterSource();
-        parameterSource.addValue("chatId", chatId);
-
-        namedParameterJdbcTemplate.update(sqlFroUsers, params);
-        namedParameterJdbcTemplate.update(sqlForCredentials, parameterSource);
+        transactionTemplate.execute( new TransactionCallbackWithoutResult(){
+            @Override
+            protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
+                Long id = DataAccessUtils.singleResult(namedParameterJdbcTemplate.query(sqlFroUsers, params, (rs, rowNum) -> rs.getLong("id")));
+                MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+                parameterSource.addValue("id", id);
+                namedParameterJdbcTemplate.update(sqlForCredentials, parameterSource);
+            }
+        });
+        logger.info("method /deauthorize completed successfully for user - {}", chatId);
     }
 
 }
