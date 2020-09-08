@@ -25,6 +25,7 @@ To start developing with the Strava API, you will need to make an application
 2.After you are logged in, go to [Strava settings](https://www.strava.com/settings/api) and create an app.
 
 Configuration  HicariCP
+
 args[3] - DBdriverName 
 
 args[4] - jdbcUrl
