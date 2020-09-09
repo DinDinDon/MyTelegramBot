@@ -15,7 +15,7 @@ args[0] - YourtelegramToken (yor can change - > [BotFather](https://t.me/BotFath
 Telegram token given without adding "bot" before the token key. 
 For example: 5784352324:A4в56oAпАввАk4N35ве3е-DавDPп
 
-<<<<<<< HEAD
+
 args[1] - YourstravaClientSecret
 args[2] - YourstravaClientId
 To start developing with the Strava API, you will need to make an application
@@ -28,9 +28,8 @@ args[4] - jdbcUrl
 args[5] - DBuserName
 args[6] - password
 args[7] - maximumPoolSize for HicariCP
-=======
-args[1] - YourstravaClientSecret 
 
+args[1] - YourstravaClientSecret 
 args[2] - YourstravaClientId
 To start developing with the Strava API, you will need to make an application
 
@@ -49,4 +48,4 @@ args[5] - DBuserName
 args[6] - password
 
 args[7] - maximumPoolSize for HicariCP
->>>>>>> a40dd48e50e469bb0885b3931e2cc1bd633ff7b7
+
