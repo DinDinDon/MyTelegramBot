@@ -59,7 +59,6 @@ public class TelegramService {
                     List<TelegramUserInfo> updateIds = getAllTelegramUpdateUsers(getUpdateTelegram);
 
                     for (TelegramUserInfo id : updateIds) {
-                        final UUID randomClientID = UUID.randomUUID();
                         Integer lastUpdateId = getUpdateTelegram.getResult().get(getUpdateTelegram.getResult().size() - 1).getUpdateId();
                         Integer updateId = id.getUpdateId();
                         Long chatId = id.getChatId();
@@ -69,7 +68,7 @@ public class TelegramService {
                             logger.debug("received a new request in telegram from user - {}", chatId);
                             switch (text) {
                                 case "/auth":
-                                    handleAuthCommand(randomClientID, chatId);
+                                    handleAuthCommand(chatId);
                                     break;
                                 case "/weekdistance":
                                     handleWeekDistance(chatId);
@@ -110,7 +109,8 @@ public class TelegramService {
         telegramClient.sendSimpleText(chatId, anyText);
     }
 
-    private void handleAuthCommand(UUID randomClientID, Long chatId) throws IOException, InterruptedException {
+    private void handleAuthCommand(Long chatId) throws IOException, InterruptedException {
+        final UUID randomClientID = UUID.randomUUID();
         logger.debug("received a request /auth for user - {}, randomClientID - {}", chatId, randomClientID);
         StravaCredential credential = storage.getStravaCredentials(chatId);
 

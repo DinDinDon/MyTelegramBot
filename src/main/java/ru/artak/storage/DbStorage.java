@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.dao.support.DataAccessUtils;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -30,13 +31,13 @@ public class DbStorage implements Storage {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    private final HikariDataSource dataSource;
+    private final TransactionTemplate transactionTemplate;
 
-    public static DbStorage getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate, HikariDataSource dataSource) {
+    public static DbStorage getInstance(NamedParameterJdbcTemplate namedParameterJdbcTemplate, TransactionTemplate transactionTemplate) {
         if (instance == null) {
             synchronized (DbStorage.class) {
                 if (instance == null) {
-                    instance = new DbStorage(namedParameterJdbcTemplate,dataSource);
+                    instance = new DbStorage(namedParameterJdbcTemplate, transactionTemplate);
                 }
             }
         }
@@ -44,27 +45,9 @@ public class DbStorage implements Storage {
         return instance;
     }
 
-    private DbStorage(NamedParameterJdbcTemplate namedParameterJdbcTemplate, HikariDataSource dataSource) {
+    private DbStorage(NamedParameterJdbcTemplate namedParameterJdbcTemplate, TransactionTemplate transactionTemplate) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
-        this.dataSource = dataSource;
-    }
-
-    private StravaCredential extractData(ResultSet resultSet) throws SQLException {
-
-        if (resultSet.next()) {
-            String accessToken = resultSet.getString("access_token");
-            String refreshToken = resultSet.getString("refresh_token");
-            Timestamp timeToExpiredSql = resultSet.getTimestamp("time_to_expired");
-            Long timeToExpired = timeToExpiredSql.toInstant().getEpochSecond();
-            boolean status = resultSet.getBoolean("deleted");
-
-            StravaCredential stravaCredential = new StravaCredential(accessToken, refreshToken, timeToExpired);
-            stravaCredential.setStatus(status);
-
-            return stravaCredential;
-        }
-
-        return null;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Override
@@ -117,33 +100,33 @@ public class DbStorage implements Storage {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("chat_id", chatId);
 
-        StravaCredential result = namedParameterJdbcTemplate.query(sql, params, resultSet -> {
-            return extractData(resultSet);
-        });
-
-        return result;
+        return DataAccessUtils.singleResult(namedParameterJdbcTemplate.query(sql, params, rowMapper));
     }
 
+    private final RowMapper<StravaCredential> rowMapper = (rs, rowNum) -> {
+        String accessToken = rs.getString("access_token");
+        String refreshToken = rs.getString("refresh_token");
+        Timestamp timeToExpiredSql = rs.getTimestamp("time_to_expired");
+        Long timeToExpired = timeToExpiredSql.toInstant().getEpochSecond();
+        boolean status = rs.getBoolean("deleted");
+
+        return new StravaCredential(accessToken, refreshToken, timeToExpired, status);
+    };
 
     @Override
     public void removeUser(Long chatId) {
-        final DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSource);
-        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-
-        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        transactionTemplate.setName("TransactionDeleteUser");
-
-        String sqlFroUsers = "UPDATE users SET deleted = true WHERE chat_id = :chat_id RETURNING id";
+        String sqlForUsers = "UPDATE users SET deleted = true WHERE chat_id = :chat_id RETURNING id";
         String sqlForCredentials = "DELETE FROM user_credentials WHERE users_id = :id";
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("chat_id", chatId);
 
-        transactionTemplate.execute( new TransactionCallbackWithoutResult(){
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+
+        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
             @Override
             protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
-                Long id = DataAccessUtils.singleResult(namedParameterJdbcTemplate.query(sqlFroUsers, params, (rs, rowNum) -> rs.getLong("id")));
-                MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+                Long id = DataAccessUtils.singleResult(namedParameterJdbcTemplate.query(sqlForUsers, params, (rs, rowNum) -> rs.getLong("id")));
                 parameterSource.addValue("id", id);
                 namedParameterJdbcTemplate.update(sqlForCredentials, parameterSource);
             }

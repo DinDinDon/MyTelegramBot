@@ -8,6 +8,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.server.BotHttpServer;
@@ -112,7 +115,10 @@ public class Main {
         // инициализация зависимостей
         logger.debug("dependency initialization");
         NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
-        DbStorage dbStorage = DbStorage.getInstance(namedParameterJdbcTemplate, dataSource);
+        DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSource);
+        TransactionTemplate transactionTemplate = getTransactionTemplate(transactionManager);
+
+        DbStorage dbStorage = DbStorage.getInstance(namedParameterJdbcTemplate, transactionTemplate);
 
         TelegramClient telegramClient = new TelegramClient(telegramToken, stravaClientId, stravaBaseRedirectUrl);
         StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret, dbStorage);
@@ -168,6 +174,15 @@ public class Main {
         liquibase.setDataSource(dataSource);
 
         return liquibase;
+    }
+
+    private static TransactionTemplate getTransactionTemplate(DataSourceTransactionManager transactionManager) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transactionTemplate.setName("TransactionDeleteUser");
+
+        return transactionTemplate;
     }
 }
 

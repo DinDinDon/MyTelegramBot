@@ -14,6 +14,13 @@ public class StravaCredential {
         this.timeToExpired = timeToUpdate;
     }
 
+    public StravaCredential(String accessToken, String refreshToken, Long timeToUpdate, boolean status) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.timeToExpired = timeToUpdate;
+        this.status = status;
+    }
+
     public String getAccessToken() {
         return accessToken;
     }
