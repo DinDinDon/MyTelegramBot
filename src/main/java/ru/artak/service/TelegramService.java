@@ -1,5 +1,7 @@
 package ru.artak.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.client.telegram.model.GetUpdateTelegram;
@@ -11,6 +13,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class TelegramService {
+
+    private static final Logger logger = LogManager.getLogger(TelegramService.class);
 
     private final Object lock = new Object();
 
@@ -44,11 +48,11 @@ public class TelegramService {
     }
 
     public void sendGet() {
-        final String randomClientID = UUID.randomUUID().toString().replace("-", "");
         Integer telegramOffset = 0;
 
         while (true) {
             synchronized (lock) {
+
                 try {
                     GetUpdateTelegram getUpdateTelegram = telegramClient.getUpdates(telegramOffset);
 
@@ -57,13 +61,14 @@ public class TelegramService {
                     for (TelegramUserInfo id : updateIds) {
                         Integer lastUpdateId = getUpdateTelegram.getResult().get(getUpdateTelegram.getResult().size() - 1).getUpdateId();
                         Integer updateId = id.getUpdateId();
-                        Integer chatId = id.getChatId();
+                        Long chatId = id.getChatId();
                         String text = id.getText();
 
                         if (updateId <= lastUpdateId) {
+                            logger.debug("received a new request in telegram from user - {}", chatId);
                             switch (text) {
                                 case "/auth":
-                                    handleAuthCommand(randomClientID, chatId);
+                                    handleAuthCommand(chatId);
                                     break;
                                 case "/weekdistance":
                                     handleWeekDistance(chatId);
@@ -80,41 +85,48 @@ public class TelegramService {
                     }
                     lock.wait(500);
                 } catch (Throwable e) {
-                    e.printStackTrace();
+                    logger.error("mistake telegram bot handler ", e);
                 }
             }
         }
 
     }
 
-    private void handleWeekDistance(Integer chatId) throws IOException, InterruptedException {
+    private void handleWeekDistance(Long chatId) throws IOException, InterruptedException {
+        logger.debug("received a request /weekdistance for user - {}", chatId);
         StravaCredential credential = storage.getStravaCredentials(chatId);
-        if (credential == null) {
+
+        if (credential == null || credential.isStatus()) {
             handleDefaultCommand(chatId, telegramNoAuthorizationText);
             return;
         }
-        Number weekDistance = stravaService.getRunningWeekDistance(chatId);
+        Number weekDistance = stravaService.getRunningWeekDistance(chatId, credential);
         telegramClient.sendDistanceText(chatId, telegramWeekDistanceText, weekDistance);
 
     }
 
-    private void handleDefaultCommand(Integer chatId, String anyText) throws IOException, InterruptedException {
+    private void handleDefaultCommand(Long chatId, String anyText) throws IOException, InterruptedException {
         telegramClient.sendSimpleText(chatId, anyText);
     }
 
-    private void handleAuthCommand(String randomClientID, Integer chatId) throws IOException, InterruptedException {
+    private void handleAuthCommand(Long chatId) throws IOException, InterruptedException {
+        final UUID randomClientID = UUID.randomUUID();
+        logger.debug("received a request /auth for user - {}, randomClientID - {}", chatId, randomClientID);
         StravaCredential credential = storage.getStravaCredentials(chatId);
-        if (credential != null) {
+
+        if (credential != null && !credential.isStatus()) {
             handleDefaultCommand(chatId, whenUserAlreadyAuthorized);
+
             return;
         }
         storage.saveStateForUser(randomClientID, chatId);
         telegramClient.sendOauthCommand(randomClientID, chatId);
-
     }
 
-    private void handleDeauthorizeCommand(Integer chatId) throws IOException, InterruptedException {
+    private void handleDeauthorizeCommand(Long chatId) throws IOException, InterruptedException {
+        logger.debug("received a request /deauthorize for user - {}", chatId);
         StravaCredential credential = storage.getStravaCredentials(chatId);
+
         if (credential == null) {
             telegramClient.sendSimpleText(chatId, telegramNoAuthorizationText);
             return;
@@ -125,7 +137,7 @@ public class TelegramService {
             telegramClient.sendSimpleText(chatId, telegramDeauthorizeText);
         } catch (Exception e) {
             telegramClient.sendSimpleText(chatId, errorText);
-            e.printStackTrace();
+            logger.warn("failed to deauthorize user - {}", chatId, e);
         }
 
     }

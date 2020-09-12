@@ -1,5 +1,7 @@
 package ru.artak.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.strava.model.ResultActivities;
@@ -14,6 +16,7 @@ import java.util.*;
 
 public class StravaService {
 
+    private static final Logger logger = LogManager.getLogger(StravaService.class);
     private static final String AUTHORIZED_TEXT = "Strava аккаунт был успешно подключен!";
     private final String type = "Run";
     private final TelegramClient telegramClient;
@@ -26,11 +29,12 @@ public class StravaService {
         this.stravaClient = stravaClient;
     }
 
-    public void obtainCredentials(String state, String authorizationCode) throws IOException, InterruptedException {
+    public void obtainCredentials(UUID state, String authorizationCode) throws IOException, InterruptedException {
         StravaCredential stravaCredential = getCredentials(authorizationCode);
 
-        Integer chatID = storage.getChatIdByState(state);
+        Long chatID = storage.getChatIdByState(state);
         storage.saveStravaCredentials(chatID, stravaCredential);
+        logger.info("saved credentials for user - {}", chatID);
         telegramClient.sendSimpleText(chatID, AUTHORIZED_TEXT);
 
     }
@@ -45,12 +49,11 @@ public class StravaService {
         }
     }
 
-    public Number getRunningWeekDistance(Integer chatId) throws IOException, InterruptedException {
-        String accessToken = storage.getStravaCredentials(chatId).getAccessToken();
+    public Number getRunningWeekDistance(Long chatId, StravaCredential credential) throws IOException, InterruptedException {
         WeekInterval weekInterval = getWeekInterval();
         Long from = weekInterval.getFrom();
         Long to = weekInterval.getTo();
-        List<ResultActivities> responseActivities = stravaClient.getActivities(chatId, accessToken, from, to);
+        List<ResultActivities> responseActivities = stravaClient.getActivities(chatId, credential, from, to);
         List<ResultActivities> correctActivities = getCorrectDateWithTimeZone(responseActivities);
         float resultRunningDistance = getRunningDistanceFormat(correctActivities);
 
@@ -92,7 +95,7 @@ public class StravaService {
         );
     }
 
-    public void deauthorize(Integer chatId, String accessToken) throws IOException, InterruptedException {
+    public void deauthorize(Long chatId, String accessToken) throws IOException, InterruptedException {
         stravaClient.deauthorizeUser(accessToken);
         storage.removeUser(chatId);
     }

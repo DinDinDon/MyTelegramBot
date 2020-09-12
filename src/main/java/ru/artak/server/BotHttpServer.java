@@ -4,6 +4,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.artak.service.StravaService;
 
 import java.io.IOException;
@@ -11,12 +13,14 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 
 public class BotHttpServer {
+    private static final Logger logger = LogManager.getLogger(BotHttpServer.class);
 
     private final StravaService stravaService;
-    
+
     private final int port;
 
     public BotHttpServer(StravaService stravaService, int port) {
@@ -37,16 +41,17 @@ public class BotHttpServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             Map<String, String> stateAndAuthCode = getStateAndAuthCode(exchange);
-            String state = stateAndAuthCode.get("state");
+            UUID state = UUID.fromString(stateAndAuthCode.get("state"));
             String authorizationCode = stateAndAuthCode.get("code");
+            logger.debug("the server received a response from Strava");
             String text = "Authorization failed. StravaBot";
 
-            if (!StringUtils.isBlank(state) && !StringUtils.isBlank(authorizationCode)) {
+            if (!StringUtils.isBlank(state.toString()) && !StringUtils.isBlank(authorizationCode)) {
                 try {
                     stravaService.obtainCredentials(state, authorizationCode);
                     text = "GREAT, YOU ARE AUTHORIZED. StravaBot";
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.error("failed to save credentials ", e);
                 }
             }
             writeResponse(exchange, text);

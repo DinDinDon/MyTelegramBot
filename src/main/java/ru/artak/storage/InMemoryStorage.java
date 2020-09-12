@@ -3,15 +3,16 @@ package ru.artak.storage;
 import ru.artak.client.strava.StravaCredential;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-
+@Deprecated
 public class InMemoryStorage implements Storage {
 
     private static volatile InMemoryStorage instance;
 
-    private final Map<String, Integer> stateToChatId = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> stateToChatId = new ConcurrentHashMap<>();
 
-    private final Map<Integer, StravaCredential> chatIdToAccessToken = new ConcurrentHashMap<>();
+    private final Map<Long, StravaCredential> chatIdToAccessToken = new ConcurrentHashMap<>();
 
     public static InMemoryStorage getInstance() {
         if (instance == null) {
@@ -23,32 +24,31 @@ public class InMemoryStorage implements Storage {
         }
         return instance;
     }
-
     private InMemoryStorage() {
     }
 
     @Override
-    public void saveStateForUser(String state, Integer chatId) {
+    public void saveStateForUser(UUID state, Long chatId) {
         stateToChatId.put(state, chatId);
     }
 
     @Override
-    public Integer getChatIdByState(String state) {
+    public Long getChatIdByState(UUID state) {
         return stateToChatId.get(state);
     }
 
     @Override
-    public void saveStravaCredentials(Integer chatId, StravaCredential credential) {
+    public void saveStravaCredentials(Long chatId, StravaCredential credential) {
         chatIdToAccessToken.put(chatId, credential);
     }
 
     @Override
-    public StravaCredential getStravaCredentials(Integer chatId) {
+    public StravaCredential getStravaCredentials(Long chatId) {
         return chatIdToAccessToken.get(chatId);
     }
 
     @Override
-    public void removeUser(Integer chatId) {
+    public void removeUser(Long chatId) {
         chatIdToAccessToken.remove(chatId);
     }
 

@@ -3,6 +3,8 @@ package ru.artak.client.strava;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.artak.client.strava.model.ResultActivities;
 import ru.artak.storage.Storage;
 
@@ -13,7 +15,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.*;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -21,6 +22,7 @@ import static java.net.http.HttpRequest.BodyPublishers.noBody;
 
 public class StravaClient {
 
+    private static final Logger logger = LogManager.getLogger(StravaClient.class);
     public static final String STRAVA_OAUTH_ADDRESS = "https://www.strava.com/oauth/";
     public static final String STRAVA_API_ADDRESS = "https://www.strava.com/api/v3";
     private final ObjectMapper mapper = new ObjectMapper();
@@ -48,11 +50,12 @@ public class StravaClient {
         return mapper.readValue(stravaAccessToken.body(), StravaOauthResp.class);
     }
 
-    public List<ResultActivities> getActivities(Integer chatId, String accessToken, Long from, Long to) throws IOException, InterruptedException {
-        checkAccessAndUpdate(chatId);
+    public List<ResultActivities> getActivities(Long chatId, StravaCredential credential, Long from, Long to) throws IOException, InterruptedException {
+        String accessTokenUpdate = checkAccessAndUpdate(chatId, credential);
+
         HttpRequest requestForGetActivities = HttpRequest.newBuilder()
                 .uri(URI.create(STRAVA_API_ADDRESS + "/athlete/activities?&before=" + to + "&after=" + from))
-                .header("Authorization", "Bearer " + accessToken)
+                .header("Authorization", "Bearer " + accessTokenUpdate)
                 .GET()
                 .build();
 
@@ -63,19 +66,23 @@ public class StravaClient {
         return activities;
     }
 
-    public void checkAccessAndUpdate(Integer chatId) throws IOException, InterruptedException {
-        StravaCredential credential = storage.getStravaCredentials(chatId);
+    public String checkAccessAndUpdate(Long chatId, StravaCredential credential) throws IOException, InterruptedException {
         Long timeToExpired = credential.getTimeToExpired();
         String refreshToken = credential.getRefreshToken();
         LocalDateTime dateTimeToExpired = LocalDateTime.ofInstant(Instant.ofEpochSecond(timeToExpired), ZoneId.systemDefault());
         LocalDateTime today = LocalDateTime.now(ZoneId.systemDefault());
         if (today.isAfter(dateTimeToExpired)) {
-            updateAccessToken(chatId, refreshToken);
+            credential = updateAccessToken(chatId, refreshToken);
+            logger.info("update accessToken for user - {}", chatId);
+            return credential.getAccessToken();
         }
+
+        return credential.getAccessToken();
     }
 
-    private StravaCredential updateAccessToken(Integer chatId, String refreshToken) throws IOException, InterruptedException {
+    private StravaCredential updateAccessToken(Long chatId, String refreshToken) throws IOException, InterruptedException {
         StravaOauthResp strava = getUpdateAccessToken(refreshToken);
+        logger.debug("Update accessToken for user - {}, refreshToken - {}", chatId, refreshToken);
         StravaCredential stravaCredential = new StravaCredential(strava.getAccessToken(), strava.getRefreshToken(), strava.getExpiresAt());
 
         storage.saveStravaCredentials(chatId, stravaCredential);

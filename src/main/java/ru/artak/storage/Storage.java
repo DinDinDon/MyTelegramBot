@@ -2,17 +2,19 @@ package ru.artak.storage;
 
 import ru.artak.client.strava.StravaCredential;
 
+import java.util.UUID;
+
 public interface Storage {
 
-    void saveStateForUser(String state, Integer chatId);
+    void saveStateForUser(UUID state, Long chatId);
 
-    Integer getChatIdByState(String state);
+    Long getChatIdByState(UUID state);
 
-    void saveStravaCredentials(Integer chatId, StravaCredential credential);
+    void saveStravaCredentials(Long chatId, StravaCredential credential);
 
-    StravaCredential getStravaCredentials(Integer chatId);
+    StravaCredential getStravaCredentials(Long chatId);
 
-    void removeUser(Integer chatId);
+    void removeUser(Long chatId);
 
 
 }

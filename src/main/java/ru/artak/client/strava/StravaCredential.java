@@ -5,11 +5,20 @@ public class StravaCredential {
     private final String accessToken;
     private final String refreshToken;
     private final Long timeToExpired;
+    private boolean status;
+
 
     public StravaCredential(String accessToken, String refreshToken, Long timeToUpdate) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.timeToExpired = timeToUpdate;
+    }
+
+    public StravaCredential(String accessToken, String refreshToken, Long timeToUpdate, boolean status) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.timeToExpired = timeToUpdate;
+        this.status = status;
     }
 
     public String getAccessToken() {
@@ -25,4 +34,11 @@ public class StravaCredential {
     }
 
 
+    public boolean isStatus() {
+        return status;
+    }
+
+    public void setStatus(boolean status) {
+        this.status = status;
+    }
 }
