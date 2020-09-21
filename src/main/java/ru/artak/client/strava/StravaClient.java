@@ -112,4 +112,24 @@ public class StravaClient {
     }
 
 
+    public Long getUtcOffset(Long chatId, StravaCredential credential) throws IOException, InterruptedException {
+        String accessTokenUpdate = checkAccessAndUpdate(chatId, credential);
+
+        HttpRequest requestForGetActivities = HttpRequest.newBuilder()
+                .uri(URI.create(STRAVA_API_ADDRESS + "/athlete/activities"))
+                .header("Authorization", "Bearer " + accessTokenUpdate)
+                .GET()
+                .build();
+
+        HttpResponse<String> responseActivities = httpClientForStrava.send(requestForGetActivities, HttpResponse.BodyHandlers.ofString());
+        List<ResultActivities> activities = mapper.readValue(responseActivities.body(), new TypeReference<>() {
+        });
+
+        if (activities.size() == 0) {
+
+            return 0L;
+        }
+
+        return activities.get(0).getUtcOffset();
+    }
 }

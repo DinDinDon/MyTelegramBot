@@ -15,12 +15,11 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-
-public class TelegramClient {
+public class TelegramClient  {
 
     private static final Logger logger = LogManager.getLogger(TelegramClient.class);
 
-    public static final String TELEGRAM_BASE_URL = "https://api.telegram.org/bot";
+    private final String TELEGRAM_BASE_URL = "https://api.telegram.org/bot";
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -37,7 +36,7 @@ public class TelegramClient {
         this.stravaClientId = stravaClientId;
         this.baseRedirectUrl = baseRedirectUrl;
     }
-
+    @Deprecated
     public GetUpdateTelegram getUpdates(Integer offset) throws IOException, InterruptedException {
         URI telegramGetUpdateUrl = URI.create(TELEGRAM_BASE_URL + telegramToken +
                 "/getUpdates?offset=" + (offset + 1));
@@ -49,10 +48,11 @@ public class TelegramClient {
     public void sendSimpleText(Long chatId, String commandText) throws IOException, InterruptedException {
         URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + telegramToken + "/sendMessage?chat_id=" +
                 chatId + "&text=" + URLEncoder.encode(commandText, StandardCharsets.UTF_8));
+
         sendMessage(telegramDefaultResponseUrl);
 
     }
-
+    @Deprecated
     public void sendDistanceText(Long chatId, String commandText, Number weekDistance) throws IOException, InterruptedException {
         URI telegramDefaultResponseUrl = URI.create(TELEGRAM_BASE_URL + telegramToken + "/sendMessage?chat_id=" +
                 chatId + "&text=" + URLEncoder.encode(commandText, StandardCharsets.UTF_8) + weekDistance + "Км");
@@ -60,7 +60,7 @@ public class TelegramClient {
         logger.info("sent method /weekDistance data to user - {}", chatId);
 
     }
-
+    @Deprecated
     public void sendOauthCommand(UUID randomClientID, Long chatId) throws IOException, InterruptedException {
         URI oauthUrl = URI.create(TELEGRAM_BASE_URL + telegramToken + "/sendMessage?chat_id=" + chatId + "&text="
                 + URLEncoder.encode(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
