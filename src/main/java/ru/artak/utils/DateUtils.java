@@ -1,15 +1,15 @@
 package ru.artak.utils;
 
 import ru.artak.service.DistanceInterval;
-import ru.artak.service.FindInterval;
+import ru.artak.service.FindIntervalType;
 
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 
-public class DistanceRange {
+public class DateUtils {
 
 
-    public static DistanceInterval getWeekRange(FindInterval interval) {
+    public static DistanceInterval getWeekRange(FindIntervalType interval) {
         long from;
         long to;
         switch (interval) {
@@ -28,7 +28,7 @@ public class DistanceRange {
         return null;
     }
 
-    public static DistanceInterval getMonthRange(FindInterval interval) {
+    public static DistanceInterval getMonthRange(FindIntervalType interval) {
 
         Long from;
         Long to;

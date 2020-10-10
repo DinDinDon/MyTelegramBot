@@ -4,15 +4,15 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-public class UpdateHandlStrategy {
-    UpdateHandl updateHandl;
+public class UpdateHandlerImpl {
+    UpdateHandler updateHandler;
 
-    public void setUpdateHandl(UpdateHandl updateHandl) {
-        this.updateHandl = updateHandl;
+    public void setUpdateHandler(UpdateHandler updateHandler) {
+        this.updateHandler = updateHandler;
     }
 
     public BotApiMethod<Message> executeUpdate(Update update){
-       return updateHandl.executeUpdate(update);
+       return updateHandler.executeUpdate(update);
     }
 
 }

@@ -15,7 +15,7 @@ import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import ru.artak.bot.PoolingBot;
-import ru.artak.bot.UpdateHandlStrategy;
+import ru.artak.bot.UpdateHandlerImpl;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.server.BotHttpServer;
@@ -130,12 +130,12 @@ public class Main {
 
         DbStorage dbStorage = DbStorage.getInstance(namedParameterJdbcTemplate, transactionTemplate);
 
-        TelegramClient telegramClient = new TelegramClient(telegramToken, stravaClientId, stravaBaseRedirectUrl);
+        TelegramClient telegramClient = new TelegramClient(telegramToken);
         StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret, dbStorage);
         StravaService stravaService = new StravaService(telegramClient, dbStorage, stravaClient);
         BotHttpServer botHttpServer = new BotHttpServer(stravaService, port);
         TelegramService telegramService = new TelegramService(dbStorage, stravaService, stravaClientId, stravaBaseRedirectUrl);
-        UpdateHandlStrategy updateHandlStrategy = new UpdateHandlStrategy();
+        UpdateHandlerImpl updateHandlerImpl = new UpdateHandlerImpl();
 
         // запуск сервера
         logger.debug("server start");
@@ -159,7 +159,7 @@ public class Main {
         // инициализация и запуск обработчика запросов telegram api
         ApiContextInitializer.init();
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
-        PoolingBot poolingBot = new PoolingBot(telegramToken, telegramBotName, updateHandlStrategy, telegramService);
+        PoolingBot poolingBot = new PoolingBot(telegramToken, telegramBotName, updateHandlerImpl, telegramService);
         try {
             telegramBotsApi.registerBot(poolingBot);
         } catch (

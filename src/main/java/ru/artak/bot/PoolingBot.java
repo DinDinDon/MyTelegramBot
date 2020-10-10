@@ -18,21 +18,21 @@ public class PoolingBot extends TelegramLongPollingBot {
 
     private final String telegramBotName;
 
-    private final UpdateHandlStrategy updateHandlStrategy;
+    private final UpdateHandlerImpl updateHandlerImpl;
 
     private final TelegramService telegramService;
 
-    public PoolingBot(String telegramToken, String telegramBotName, UpdateHandlStrategy updateHandlStrategy, TelegramService telegramService) {
+    public PoolingBot(String telegramToken, String telegramBotName, UpdateHandlerImpl updateHandlerImpl, TelegramService telegramService) {
         this.telegramToken = telegramToken;
         this.telegramBotName = telegramBotName;
-        this.updateHandlStrategy = updateHandlStrategy;
+        this.updateHandlerImpl = updateHandlerImpl;
         this.telegramService = telegramService;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
-        updateHandlStrategy.setUpdateHandl(telegramService);
-        BotApiMethod<Message> response =  updateHandlStrategy.executeUpdate(update);
+        updateHandlerImpl.setUpdateHandler(telegramService);
+        BotApiMethod<Message> response =  updateHandlerImpl.executeUpdate(update);
         try {
             execute(response);
         } catch (TelegramApiException e) {
@@ -44,7 +44,6 @@ public class PoolingBot extends TelegramLongPollingBot {
                     execute(new SendMessage().setChatId(update.getCallbackQuery().getMessage().getChatId()).setText("error , please try again"));
                 } catch (TelegramApiException apiException) {
                     logger.error("Unexpected situation", apiException);
-                    throw new RuntimeException("Unexpected situation", apiException);
                 }
             }
         }

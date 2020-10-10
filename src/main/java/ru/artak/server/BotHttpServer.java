@@ -48,7 +48,6 @@ public class BotHttpServer {
 
             if (!StringUtils.isBlank(state.toString()) && !StringUtils.isBlank(authorizationCode)) {
                 try {
-
                     stravaService.obtainCredentials(state, authorizationCode);
                     text = "GREAT, YOU ARE AUTHORIZED. StravaBot";
                 } catch (Exception e) {

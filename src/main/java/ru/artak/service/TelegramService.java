@@ -5,18 +5,15 @@ import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.*;
-import ru.artak.bot.UpdateHandl;
+import ru.artak.bot.UpdateHandler;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.strava.StravaCredential;
-import ru.artak.client.telegram.model.GetUpdateTelegram;
 import ru.artak.storage.Storage;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-public class TelegramService implements UpdateHandl {
+public class TelegramService implements UpdateHandler {
 
     private static final Logger logger = LogManager.getLogger(TelegramService.class);
 
@@ -40,7 +37,7 @@ public class TelegramService implements UpdateHandl {
 
     private final String whenUserAlreadyAuthorized = "Вы уже авторизованы!";
     private final String telegramNoAuthorizationText = "Вы не авторизованы. Используйте команду /auth";
-    private final String telegramDeauthorizeText = "Вы деавторизированы!";
+    private final String telegramDeauthorizationText = "Вы деавторизированы!";
     private final String telegramWeekDistanceText = "Вы пробежали ";
     private final String errorText = "Ошибка, пожалуйста повторите позднее ";
 
@@ -53,7 +50,7 @@ public class TelegramService implements UpdateHandl {
     }
 
     @Override
-    public BotApiMethod<Message> executeUpdate(Update update) {
+    public SendMessage executeUpdate(Update update) {
 
         if (update.hasMessage()) {
             logger.debug("received a new request in telegram from user - {}", update.getMessage().getChatId());
@@ -63,7 +60,7 @@ public class TelegramService implements UpdateHandl {
                 case "/weekdistance":
                     return sendInlineKeyBoardMessageWeek(update.getMessage().getChatId());
                 case "/deauthorize":
-                    return handleDeauthorizeCommand(update.getMessage().getChatId());
+                    return handleDeauthorizationCommand(update.getMessage().getChatId());
                 case "/monthdistance":
                     return sendInlineKeyBoardMessageMonth(update.getMessage().getChatId());
                 default:
@@ -73,13 +70,13 @@ public class TelegramService implements UpdateHandl {
             try {
                 switch (update.getCallbackQuery().getData()) {
                     case "currentWeekDistance":
-                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindInterval.CURRENTWEEKDISTANCE);
+                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindIntervalType.CURRENTWEEKDISTANCE);
                     case "lastWeekDistance":
-                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindInterval.LASTWEEKDISTANCE);
+                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindIntervalType.LASTWEEKDISTANCE);
                     case "currentMonthDistance":
-                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindInterval.CURRENTMONTHDISTANCE);
+                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindIntervalType.CURRENTMONTHDISTANCE);
                     case "lastMonthDistance":
-                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindInterval.LASTMONTHDISTANCE);
+                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindIntervalType.LASTMONTHDISTANCE);
 
                 }
             } catch (Exception e) {
@@ -88,10 +85,10 @@ public class TelegramService implements UpdateHandl {
                 return (new SendMessage().setChatId(update.getCallbackQuery().getMessage().getChatId()).setText("error , please try again"));
             }
         }
-        return new SendMessage();
+        return null;
     }
 
-    private BotApiMethod<Message> handleDistance(Long chatId, FindInterval interval) throws IOException, InterruptedException {
+    private SendMessage handleDistance(Long chatId, FindIntervalType interval) throws IOException, InterruptedException {
         logger.debug("received a request distance for user - {}, interval - {}", chatId, interval);
         StravaCredential credential = storage.getStravaCredentials(chatId);
 
@@ -104,11 +101,11 @@ public class TelegramService implements UpdateHandl {
     }
 
 
-    private BotApiMethod<Message> handleDefaultCommand(Long chatId) {
+    private SendMessage handleDefaultCommand(Long chatId) {
         return getButtons(chatId);
     }
 
-    private BotApiMethod<Message> handleAuthCommand(Long chatId) {
+    private SendMessage handleAuthCommand(Long chatId) {
         final UUID randomClientID = UUID.randomUUID();
         logger.debug("received a request /auth for user - {}, randomClientID - {}", chatId, randomClientID);
         StravaCredential credential = storage.getStravaCredentials(chatId);
@@ -123,7 +120,7 @@ public class TelegramService implements UpdateHandl {
                 "/exchange_token&approval_prompt=force&&scope=activity:read"));
     }
 
-    private BotApiMethod<Message> handleDeauthorizeCommand(Long chatId) {
+    private SendMessage handleDeauthorizationCommand(Long chatId) {
         logger.debug("received a request /deauthorize for user - {}", chatId);
         StravaCredential credential = storage.getStravaCredentials(chatId);
 
@@ -133,23 +130,11 @@ public class TelegramService implements UpdateHandl {
         String accessToken = credential.getAccessToken();
         try {
             stravaService.deauthorize(chatId, accessToken);
-            return (new SendMessage().setChatId(chatId).setText(telegramDeauthorizeText));
+            return (new SendMessage().setChatId(chatId).setText(telegramDeauthorizationText));
         } catch (Exception e) {
             logger.warn("failed to deauthorize user - {}", chatId, e);
             return (new SendMessage().setChatId(chatId).setText(errorText));
         }
-
-    }
-
-    @Deprecated
-    private List<TelegramUserInfo> getAllTelegramUpdateUsers(GetUpdateTelegram getUpdateTelegram) {
-        return getUpdateTelegram.getResult().stream()
-                .map(result ->
-                        new TelegramUserInfo(
-                                result.getMessage().getChat().getId(),
-                                result.getMessage().getText(),
-                                result.getUpdateId()))
-                .collect(Collectors.toList());
     }
 
     private SendMessage getButtons(Long chatId) {

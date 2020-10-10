@@ -8,7 +8,7 @@ import ru.artak.client.strava.model.ResultActivities;
 import ru.artak.client.strava.StravaOauthResp;
 import ru.artak.storage.Storage;
 import ru.artak.client.telegram.TelegramClient;
-import ru.artak.utils.DistanceRange;
+import ru.artak.utils.DateUtils;
 import ru.artak.utils.UtilsFormatKm;
 
 import java.io.IOException;
@@ -52,7 +52,7 @@ public class StravaService {
         }
     }
 
-    public Number getRunningDistance(Long chatId, StravaCredential credential, FindInterval interval) throws IOException, InterruptedException {
+    public Number getRunningDistance(Long chatId, StravaCredential credential, FindIntervalType interval) throws IOException, InterruptedException {
         DistanceInterval distanceInterval = getDistanceInterval(interval);
         Long from = distanceInterval.getFrom();
         Long to = distanceInterval.getTo();
@@ -65,7 +65,7 @@ public class StravaService {
         return UtilsFormatKm.getFormatKm(resultRunningDistance);
     }
 
-    private List<ResultActivities> getCorrectDateWithTimeZone(List<ResultActivities> resultActivities, FindInterval interval) {
+    private List<ResultActivities> getCorrectDateWithTimeZone(List<ResultActivities> resultActivities, FindIntervalType interval) {
         LocalDateTime monday;
         LocalDateTime sunday;
         LocalDateTime firstDay;
@@ -132,21 +132,21 @@ public class StravaService {
         return resultRunningDistance;
     }
 
-    private DistanceInterval getDistanceInterval(FindInterval interval) {
+    private DistanceInterval getDistanceInterval(FindIntervalType interval) {
 
         switch (interval) {
             case CURRENTWEEKDISTANCE:
 
-                return DistanceRange.getWeekRange(FindInterval.CURRENTWEEKDISTANCE);
+                return DateUtils.getWeekRange(FindIntervalType.CURRENTWEEKDISTANCE);
             case LASTWEEKDISTANCE:
 
-                return DistanceRange.getWeekRange(FindInterval.LASTWEEKDISTANCE);
+                return DateUtils.getWeekRange(FindIntervalType.LASTWEEKDISTANCE);
             case CURRENTMONTHDISTANCE:
 
-                return DistanceRange.getMonthRange(FindInterval.CURRENTMONTHDISTANCE);
+                return DateUtils.getMonthRange(FindIntervalType.CURRENTMONTHDISTANCE);
             case LASTMONTHDISTANCE:
 
-                return DistanceRange.getMonthRange(FindInterval.LASTMONTHDISTANCE);
+                return DateUtils.getMonthRange(FindIntervalType.LASTMONTHDISTANCE);
         }
         return null;
     }
