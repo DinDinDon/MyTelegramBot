@@ -14,6 +14,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import ru.artak.bot.PoolingBot;
+import ru.artak.bot.UpdateHandlStrategy;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.server.BotHttpServer;
@@ -26,7 +28,7 @@ import java.io.IOException;
 public class Main {
     private static final Logger logger = LogManager.getLogger(Main.class);
 
-    public static void main(String[] args) throws TelegramApiRequestException {
+    public static void main(String[] args) {
         // чтение конфигурации, должны быть заданы параметры запуска или переменные окружения. Приоритет у переменных окружения.
         logger.debug("Reading of configuration data started");
         String telegramToken = System.getenv("TELEGRAM_TOKEN");
@@ -132,6 +134,8 @@ public class Main {
         StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret, dbStorage);
         StravaService stravaService = new StravaService(telegramClient, dbStorage, stravaClient);
         BotHttpServer botHttpServer = new BotHttpServer(stravaService, port);
+        TelegramService telegramService = new TelegramService(dbStorage, stravaService, stravaClientId, stravaBaseRedirectUrl);
+        UpdateHandlStrategy updateHandlStrategy = new UpdateHandlStrategy();
 
         // запуск сервера
         logger.debug("server start");
@@ -155,11 +159,12 @@ public class Main {
         // инициализация и запуск обработчика запросов telegram api
         ApiContextInitializer.init();
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
+        PoolingBot poolingBot = new PoolingBot(telegramToken, telegramBotName, updateHandlStrategy, telegramService);
         try {
-            telegramBotsApi.registerBot(new TelegramService(dbStorage, stravaService, telegramToken, telegramBotName, stravaClientId, stravaBaseRedirectUrl));
+            telegramBotsApi.registerBot(poolingBot);
         } catch (
                 TelegramApiRequestException e) {
-            e.printStackTrace();
+            logger.warn("Telegram bot api request exception", e);
         }
 
     }

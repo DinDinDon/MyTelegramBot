@@ -2,37 +2,27 @@ package ru.artak.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.api.objects.*;
+import ru.artak.bot.UpdateHandl;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.strava.StravaCredential;
 import ru.artak.client.telegram.model.GetUpdateTelegram;
 import ru.artak.storage.Storage;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class TelegramService extends TelegramLongPollingBot {
+public class TelegramService implements UpdateHandl {
 
     private static final Logger logger = LogManager.getLogger(TelegramService.class);
 
     private final StravaService stravaService;
 
     private final Storage storage;
-
-    private final String telegramToken;
-
-    private final String telegramBotName;
 
     private final int stravaClientId;
 
@@ -45,131 +35,108 @@ public class TelegramService extends TelegramLongPollingBot {
                     "\n" +
                     "/auth - авторизация через OAuth\n" +
                     "/weekdistance - набеганное расстояние за календарную неделю\n" +
+                    "/monthdistance - набеганное расстояние за календарный месяц\n" +
                     "/deauthorize - деавторизация\n ";
 
     private final String whenUserAlreadyAuthorized = "Вы уже авторизованы!";
     private final String telegramNoAuthorizationText = "Вы не авторизованы. Используйте команду /auth";
     private final String telegramDeauthorizeText = "Вы деавторизированы!";
-
     private final String telegramWeekDistanceText = "Вы пробежали ";
     private final String errorText = "Ошибка, пожалуйста повторите позднее ";
 
 
-    public TelegramService(Storage storage, StravaService stravaService,
-                           String telegramToken, String telegramBotName, int stravaClientId, String baseRedirectUrl) {
+    public TelegramService(Storage storage, StravaService stravaService, int stravaClientId, String baseRedirectUrl) {
         this.storage = storage;
         this.stravaService = stravaService;
-        this.telegramToken = telegramToken;
-        this.telegramBotName = telegramBotName;
         this.stravaClientId = stravaClientId;
         this.baseRedirectUrl = baseRedirectUrl;
     }
 
     @Override
-    public void onUpdateReceived(Update update) {
-        try {
-            if (update.hasMessage()) {
-                logger.debug("received a new request in telegram from user - {}", update.getMessage().getChatId());
-                switch (update.getMessage().getText()) {
-                    case "/auth":
-                        handleAuthCommand(update.getMessage().getChatId());
-                        break;
-                    case "/weekdistance":
-                        execute(sendInlineKeyBoardMessageWeek(update.getMessage().getChatId()));
-                        break;
-                    case "/deauthorize":
-                        handleDeauthorizeCommand(update.getMessage().getChatId());
-                        break;
-                    case "/monthdistance":
-                        execute(sendInlineKeyBoardMessageMonth(update.getMessage().getChatId()));
-                        break;
-                    default:
-                        handleDefaultCommand(update.getMessage().getChatId(), telegramBotDefaultText);
-                        break;
-                }
-            } else if (update.hasCallbackQuery()) {
+    public BotApiMethod<Message> executeUpdate(Update update) {
+
+        if (update.hasMessage()) {
+            logger.debug("received a new request in telegram from user - {}", update.getMessage().getChatId());
+            switch (update.getMessage().getText()) {
+                case "/auth":
+                    return handleAuthCommand(update.getMessage().getChatId());
+                case "/weekdistance":
+                    return sendInlineKeyBoardMessageWeek(update.getMessage().getChatId());
+                case "/deauthorize":
+                    return handleDeauthorizeCommand(update.getMessage().getChatId());
+                case "/monthdistance":
+                    return sendInlineKeyBoardMessageMonth(update.getMessage().getChatId());
+                default:
+                    return handleDefaultCommand(update.getMessage().getChatId());
+            }
+        } else if (update.hasCallbackQuery()) {
+            try {
                 switch (update.getCallbackQuery().getData()) {
                     case "currentWeekDistance":
-                        handleDistance(update.getCallbackQuery().getMessage().getChatId(), "currentWeekDistance");
-                        break;
+                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindInterval.CURRENTWEEKDISTANCE);
                     case "lastWeekDistance":
-                        handleDistance(update.getCallbackQuery().getMessage().getChatId(), "lastWeekDistance");
-                        break;
-                    case  "currentMonthDistance":
-                        handleDistance(update.getCallbackQuery().getMessage().getChatId(), "currentMonthDistance");
-                        break;
+                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindInterval.LASTWEEKDISTANCE);
+                    case "currentMonthDistance":
+                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindInterval.CURRENTMONTHDISTANCE);
                     case "lastMonthDistance":
-                        handleDistance(update.getCallbackQuery().getMessage().getChatId(), "lastMonthDistance");
-                        break;
+                        return handleDistance(update.getCallbackQuery().getMessage().getChatId(), FindInterval.LASTMONTHDISTANCE);
 
                 }
+            } catch (Exception e) {
+                logger.debug("mistake telegram bot handler ", e);
+
+                return (new SendMessage().setChatId(update.getCallbackQuery().getMessage().getChatId()).setText("error , please try again"));
             }
-        } catch (Throwable e) {
-            logger.error("mistake telegram bot handler ", e);
         }
+        return new SendMessage();
     }
 
-
-    @Override
-    public String getBotUsername() {
-        return telegramBotName;
-    }
-
-    @Override
-    public String getBotToken() {
-        return telegramToken;
-    }
-
-
-    private void handleDistance(Long chatId, String interval) throws IOException, InterruptedException, TelegramApiException {
+    private BotApiMethod<Message> handleDistance(Long chatId, FindInterval interval) throws IOException, InterruptedException {
         logger.debug("received a request distance for user - {}, interval - {}", chatId, interval);
         StravaCredential credential = storage.getStravaCredentials(chatId);
 
         if (credential == null || credential.isStatus()) {
-            execute(new SendMessage().setChatId(chatId).setText(telegramNoAuthorizationText));
-            return;
+            return (new SendMessage().setChatId(chatId).setText(telegramNoAuthorizationText));
         }
         Number runningDistance = stravaService.getRunningDistance(chatId, credential, interval);
-        execute(new SendMessage().setChatId(chatId).setText(telegramWeekDistanceText + runningDistance + "Км"));
         logger.info("sent method distance data to user - {} , interval - {}", chatId, interval);
+        return (new SendMessage().setChatId(chatId).setText(telegramWeekDistanceText + runningDistance + "Км"));
     }
 
 
-    private void handleDefaultCommand(Long chatId, String anyText) throws TelegramApiException {
-        execute(new SendMessage().setChatId(chatId).setText(telegramBotDefaultText).setReplyMarkup(getButtons()));
+    private BotApiMethod<Message> handleDefaultCommand(Long chatId) {
+        return getButtons(chatId);
     }
 
-    private void handleAuthCommand(Long chatId) throws TelegramApiException {
+    private BotApiMethod<Message> handleAuthCommand(Long chatId) {
         final UUID randomClientID = UUID.randomUUID();
         logger.debug("received a request /auth for user - {}, randomClientID - {}", chatId, randomClientID);
         StravaCredential credential = storage.getStravaCredentials(chatId);
 
         if (credential != null && !credential.isStatus()) {
-            execute(new SendMessage().setChatId(chatId).setText(whenUserAlreadyAuthorized));
-            return;
+            return (new SendMessage().setChatId(chatId).setText(whenUserAlreadyAuthorized));
         }
         storage.saveStateForUser(randomClientID, chatId);
-        execute(new SendMessage().setChatId(chatId).setText(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
+        logger.debug("sent to user - {}, randomClientID - {} Oauth link", chatId, randomClientID);
+        return (new SendMessage().setChatId(chatId).setText(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
                 stravaClientId + "&state=" + randomClientID + "&response_type=code&redirect_uri=" + baseRedirectUrl +
                 "/exchange_token&approval_prompt=force&&scope=activity:read"));
-        logger.debug("sent to user - {}, randomClientID - {} Oauth link", chatId, randomClientID);
     }
 
-    private void handleDeauthorizeCommand(Long chatId) throws TelegramApiException {
+    private BotApiMethod<Message> handleDeauthorizeCommand(Long chatId) {
         logger.debug("received a request /deauthorize for user - {}", chatId);
         StravaCredential credential = storage.getStravaCredentials(chatId);
 
         if (credential == null) {
-            execute(new SendMessage().setChatId(chatId).setText(telegramNoAuthorizationText));
-            return;
+            return (new SendMessage().setChatId(chatId).setText(telegramNoAuthorizationText));
         }
         String accessToken = credential.getAccessToken();
         try {
             stravaService.deauthorize(chatId, accessToken);
-            execute(new SendMessage().setChatId(chatId).setText(telegramDeauthorizeText));
+            return (new SendMessage().setChatId(chatId).setText(telegramDeauthorizeText));
         } catch (Exception e) {
-            execute(new SendMessage().setChatId(chatId).setText(errorText));
             logger.warn("failed to deauthorize user - {}", chatId, e);
+            return (new SendMessage().setChatId(chatId).setText(errorText));
         }
 
     }
@@ -185,74 +152,49 @@ public class TelegramService extends TelegramLongPollingBot {
                 .collect(Collectors.toList());
     }
 
-    private ReplyKeyboardMarkup getButtons() {
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        replyKeyboardMarkup.setSelective(true);
-        replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(false);
+    private SendMessage getButtons(Long chatId) {
 
-        List<KeyboardRow> keyboard = new ArrayList<>();
-
-        KeyboardRow keyboardFirstRow = new KeyboardRow();
-        keyboardFirstRow.add(new KeyboardButton("/auth"));
-
-        KeyboardRow keyboardSecondRow = new KeyboardRow();
-        keyboardSecondRow.add(new KeyboardButton("/weekdistance"));
-
-        KeyboardRow keyboardThirdRow = new KeyboardRow();
-        keyboardThirdRow.add("/deauthorize");
-
-        KeyboardRow keyboardFourthRow = new KeyboardRow();
-        keyboardFourthRow.add("/monthdistance");
-
-        keyboard.add(keyboardFirstRow);
-        keyboard.add(keyboardSecondRow);
-        keyboard.add(keyboardThirdRow);
-        keyboard.add(keyboardFourthRow);
-
-        replyKeyboardMarkup.setKeyboard(keyboard);
-
-        return replyKeyboardMarkup;
+        return ReplyKeyboardMarkupBuilder.create(chatId)
+                .setKeyboardMarkupConfig(true, true, false)
+                .setText(telegramBotDefaultText)
+                .row()
+                .button("/auth")
+                .endRow()
+                .row()
+                .button("/weekdistance")
+                .endRow()
+                .row()
+                .button("/monthdistance")
+                .endRow()
+                .row()
+                .button("/deauthorize")
+                .endRow()
+                .build();
     }
 
     private SendMessage sendInlineKeyBoardMessageWeek(long chatId) {
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
 
-        InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
-        InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
-        inlineKeyboardButton1.setText("currentWeekDistance");
-        inlineKeyboardButton1.setCallbackData("currentWeekDistance");
-        inlineKeyboardButton2.setText("lastWeekDistance");
-        inlineKeyboardButton2.setCallbackData("lastWeekDistance");
-
-        return getSendMessage(chatId, inlineKeyboardMarkup, inlineKeyboardButton1, inlineKeyboardButton2);
+        return InlineKeyboardBuilder.create(chatId)
+                .setText("Выберите область:")
+                .row()
+                .button("currentWeekDistance", "currentWeekDistance")
+                .endRow()
+                .row()
+                .button("lastWeekDistance", "lastWeekDistance")
+                .endRow()
+                .build();
     }
 
     private SendMessage sendInlineKeyBoardMessageMonth(long chatId) {
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
 
-        InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
-        InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
-        inlineKeyboardButton1.setText("currentMonthDistance");
-        inlineKeyboardButton1.setCallbackData("currentMonthDistance");
-        inlineKeyboardButton2.setText("lastMonthDistance");
-        inlineKeyboardButton2.setCallbackData("lastMonthDistance");
-
-        return getSendMessage(chatId, inlineKeyboardMarkup, inlineKeyboardButton1, inlineKeyboardButton2);
+        return InlineKeyboardBuilder.create(chatId)
+                .setText("Выберите область:")
+                .row()
+                .button("currentMonthDistance", "currentMonthDistance")
+                .endRow()
+                .row()
+                .button("lastMonthDistance", "lastMonthDistance")
+                .endRow()
+                .build();
     }
-
-    private SendMessage getSendMessage(long chatId, InlineKeyboardMarkup inlineKeyboardMarkup, InlineKeyboardButton inlineKeyboardButton1, InlineKeyboardButton inlineKeyboardButton2) {
-        List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
-        List<InlineKeyboardButton> keyboardButtonsRow2 = new ArrayList<>();
-        keyboardButtonsRow1.add(inlineKeyboardButton1);
-        keyboardButtonsRow2.add(inlineKeyboardButton2);
-
-        List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-        rowList.add(keyboardButtonsRow1);
-        rowList.add(keyboardButtonsRow2);
-        inlineKeyboardMarkup.setKeyboard(rowList);
-        return new SendMessage().setChatId(chatId).setText("Выберите интервал").setReplyMarkup(inlineKeyboardMarkup);
-    }
-
-
 }

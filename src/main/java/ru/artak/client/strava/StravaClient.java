@@ -111,7 +111,7 @@ public class StravaClient {
         httpClientForStrava.send(requestForDeauthorize, HttpResponse.BodyHandlers.ofString());
     }
 
-
+    @Deprecated
     public Long getUtcOffset(Long chatId, StravaCredential credential) throws IOException, InterruptedException {
         String accessTokenUpdate = checkAccessAndUpdate(chatId, credential);
 
