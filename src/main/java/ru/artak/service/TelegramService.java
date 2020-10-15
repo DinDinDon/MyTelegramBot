@@ -50,7 +50,7 @@ public class TelegramService implements UpdateHandler {
     }
 
     @Override
-    public SendMessage executeUpdate(Update update) {
+    public BotApiMethod executeUpdate(Update update) {
 
         if (update.hasMessage()) {
             logger.debug("received a new request in telegram from user - {}", update.getMessage().getChatId());

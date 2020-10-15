@@ -1,9 +1,10 @@
 package ru.artak.bot;
 
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.io.Serializable;
+
 public interface UpdateHandler {
-    BotApiMethod<Message> executeUpdate(Update update);
+    <T extends Serializable, Method extends BotApiMethod<T>> Method executeUpdate(Update update);
 }

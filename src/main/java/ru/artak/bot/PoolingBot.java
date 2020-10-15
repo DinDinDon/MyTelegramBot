@@ -5,10 +5,11 @@ import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.artak.service.TelegramService;
+
+import java.io.Serializable;
 
 public class PoolingBot extends TelegramLongPollingBot {
 
@@ -32,7 +33,7 @@ public class PoolingBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         updateHandlerImpl.setUpdateHandler(telegramService);
-        BotApiMethod<Message> response =  updateHandlerImpl.executeUpdate(update);
+        BotApiMethod<Serializable> response =  updateHandlerImpl.executeUpdate(update);
         try {
             execute(response);
         } catch (TelegramApiException e) {
