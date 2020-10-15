@@ -8,16 +8,19 @@ import ru.artak.client.strava.model.ResultActivities;
 import ru.artak.client.strava.StravaOauthResp;
 import ru.artak.storage.Storage;
 import ru.artak.client.telegram.TelegramClient;
+import ru.artak.utils.DateUtils;
+import ru.artak.utils.UtilsFormatKm;
 
 import java.io.IOException;
 import java.time.*;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 
 public class StravaService {
 
     private static final Logger logger = LogManager.getLogger(StravaService.class);
-    private static final String AUTHORIZED_TEXT = "Strava аккаунт был успешно подключен!";
+    private final String AUTHORIZED_TEXT = "Strava аккаунт был успешно подключен!";
     private final String type = "Run";
     private final TelegramClient telegramClient;
     private final StravaClient stravaClient;
@@ -32,12 +35,12 @@ public class StravaService {
     public void obtainCredentials(UUID state, String authorizationCode) throws IOException, InterruptedException {
         StravaCredential stravaCredential = getCredentials(authorizationCode);
 
-        Long chatID = storage.getChatIdByState(state);
-        storage.saveStravaCredentials(chatID, stravaCredential);
-        logger.info("saved credentials for user - {}", chatID);
-        telegramClient.sendSimpleText(chatID, AUTHORIZED_TEXT);
-
+        Long chatId = storage.getChatIdByState(state);
+        storage.saveStravaCredentials(chatId, stravaCredential);
+        logger.info("saved credentials for user - {}", chatId);
+        telegramClient.sendSimpleText(chatId, AUTHORIZED_TEXT);
     }
+
 
     private StravaCredential getCredentials(String authorizationCode) {
         try {
@@ -49,29 +52,73 @@ public class StravaService {
         }
     }
 
-    public Number getRunningWeekDistance(Long chatId, StravaCredential credential) throws IOException, InterruptedException {
-        WeekInterval weekInterval = getWeekInterval();
-        Long from = weekInterval.getFrom();
-        Long to = weekInterval.getTo();
+    public Number getRunningDistance(Long chatId, StravaCredential credential, FindIntervalType interval) throws IOException, InterruptedException {
+        DistanceInterval distanceInterval = getDistanceInterval(interval);
+        Long from = distanceInterval.getFrom();
+        Long to = distanceInterval.getTo();
+
         List<ResultActivities> responseActivities = stravaClient.getActivities(chatId, credential, from, to);
-        List<ResultActivities> correctActivities = getCorrectDateWithTimeZone(responseActivities);
+        List<ResultActivities> correctActivities = getCorrectDateWithTimeZone(responseActivities, interval);
+
         float resultRunningDistance = getRunningDistanceFormat(correctActivities);
 
         return UtilsFormatKm.getFormatKm(resultRunningDistance);
     }
 
-    private List<ResultActivities> getCorrectDateWithTimeZone(List<ResultActivities> resultActivities) {
-        LocalDateTime monday = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).with(DayOfWeek.MONDAY);
-        LocalDateTime sunday = LocalDateTime.of(LocalDate.now(), LocalTime.MAX).with(DayOfWeek.SUNDAY);
-        List<ResultActivities> correctData = new ArrayList<>();
-        for (ResultActivities iter : resultActivities) {
-            if (iter.getStartDate().isBefore(monday) || iter.getStartDate().isAfter(sunday)) {
-                continue;
-            }
-            correctData.add(iter);
+    private List<ResultActivities> getCorrectDateWithTimeZone(List<ResultActivities> resultActivities, FindIntervalType interval) {
+        LocalDateTime monday;
+        LocalDateTime sunday;
+        LocalDateTime firstDay;
+        LocalDateTime lastDay;
+        List<ResultActivities> correctData;
+        switch (interval) {
+            case CURRENTWEEKDISTANCE:
+                monday = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).with(DayOfWeek.MONDAY);
+                sunday = LocalDateTime.of(LocalDate.now(), LocalTime.MAX).with(DayOfWeek.SUNDAY);
+                correctData = new ArrayList<>();
+                for (ResultActivities iter : resultActivities) {
+                    if (iter.getStartDate().isBefore(monday) || iter.getStartDate().isAfter(sunday)) {
+                        continue;
+                    }
+                    correctData.add(iter);
+                }
+                return correctData;
+            case LASTWEEKDISTANCE:
+                monday = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).with(DayOfWeek.MONDAY).minusWeeks(1);
+                sunday = LocalDateTime.of(LocalDate.now(), LocalTime.MAX).with(DayOfWeek.SUNDAY).minusWeeks(1);
+                correctData = new ArrayList<>();
+                for (ResultActivities iter : resultActivities) {
+                    if (iter.getStartDate().isBefore(monday) || iter.getStartDate().isAfter(sunday)) {
+                        continue;
+                    }
+                    correctData.add(iter);
+                }
+                return correctData;
+            case CURRENTMONTHDISTANCE:
+                firstDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).with(TemporalAdjusters.firstDayOfMonth());
+                lastDay = LocalDateTime.of(LocalDate.now(), LocalTime.MAX).with(TemporalAdjusters.lastDayOfMonth());
+                correctData = new ArrayList<>();
+                for (ResultActivities iter : resultActivities) {
+                    if (iter.getStartDate().isBefore(firstDay) || iter.getStartDate().isAfter(lastDay)) {
+                        continue;
+                    }
+                    correctData.add(iter);
+                }
+                return correctData;
+            case LASTMONTHDISTANCE:
+                firstDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).with(TemporalAdjusters.firstDayOfMonth()).minusMonths(1);
+                lastDay = LocalDateTime.of(LocalDate.now(), LocalTime.MAX).with(TemporalAdjusters.lastDayOfMonth()).minusMonths(1);
+                correctData = new ArrayList<>();
+                for (ResultActivities iter : resultActivities) {
+                    if (iter.getStartDate().isBefore(firstDay) || iter.getStartDate().isAfter(lastDay)) {
+                        continue;
+                    }
+                    correctData.add(iter);
+                }
+                return correctData;
         }
 
-        return correctData;
+        return resultActivities;
     }
 
     private float getRunningDistanceFormat(List<ResultActivities> resultActivities) {
@@ -85,14 +132,23 @@ public class StravaService {
         return resultRunningDistance;
     }
 
-    private WeekInterval getWeekInterval() {
-        LocalDateTime from = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).with(DayOfWeek.MONDAY);
-        LocalDateTime to = LocalDateTime.of(LocalDate.now(), LocalTime.MAX).with(DayOfWeek.SUNDAY);
+    private DistanceInterval getDistanceInterval(FindIntervalType interval) {
 
-        return new WeekInterval(
-                from.toInstant(ZoneOffset.UTC).getEpochSecond(),
-                to.toInstant(ZoneOffset.UTC).getEpochSecond()
-        );
+        switch (interval) {
+            case CURRENTWEEKDISTANCE:
+
+                return DateUtils.getWeekRange(FindIntervalType.CURRENTWEEKDISTANCE);
+            case LASTWEEKDISTANCE:
+
+                return DateUtils.getWeekRange(FindIntervalType.LASTWEEKDISTANCE);
+            case CURRENTMONTHDISTANCE:
+
+                return DateUtils.getMonthRange(FindIntervalType.CURRENTMONTHDISTANCE);
+            case LASTMONTHDISTANCE:
+
+                return DateUtils.getMonthRange(FindIntervalType.LASTMONTHDISTANCE);
+        }
+        return null;
     }
 
     public void deauthorize(Long chatId, String accessToken) throws IOException, InterruptedException {

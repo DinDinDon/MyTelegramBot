@@ -1,4 +1,4 @@
-package ru.artak.service;
+package ru.artak.utils;
 
 
 public class UtilsFormatKm {

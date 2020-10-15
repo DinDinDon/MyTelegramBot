@@ -1,10 +1,10 @@
 package ru.artak.service;
 
-public class WeekInterval {
+public class DistanceInterval {
     private Long from;
     private Long to;
 
-    public WeekInterval(Long after, Long befor) {
+    public DistanceInterval(Long after, Long befor) {
         this.from = after;
         this.to = befor;
     }

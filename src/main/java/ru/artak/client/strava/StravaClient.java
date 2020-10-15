@@ -110,6 +110,4 @@ public class StravaClient {
 
         httpClientForStrava.send(requestForDeauthorize, HttpResponse.BodyHandlers.ofString());
     }
-
-
 }

@@ -11,6 +11,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.telegram.telegrambots.ApiContextInitializer;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import ru.artak.bot.PoolingBot;
+import ru.artak.bot.UpdateHandlerImpl;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.telegram.TelegramClient;
 import ru.artak.server.BotHttpServer;
@@ -27,6 +32,7 @@ public class Main {
         // чтение конфигурации, должны быть заданы параметры запуска или переменные окружения. Приоритет у переменных окружения.
         logger.debug("Reading of configuration data started");
         String telegramToken = System.getenv("TELEGRAM_TOKEN");
+        String telegramBotName = System.getenv("TELEGRAM_BOT_NAME");
         String stravaClientSecret = System.getenv("STRAVA_CLIENT_SECRET");
         String stravaBaseRedirectUrl = System.getenv("STRAVA_BASE_REDIRECT_URL");
 
@@ -38,19 +44,24 @@ public class Main {
         int port = 8080;
         if (StringUtils.isNotBlank(portString)) port = Integer.parseInt(portString);
 
-        if (args.length < 3 && (StringUtils.isBlank(telegramToken) && stravaClientId == 0 && StringUtils.isBlank(stravaClientSecret))) {
+        if (args.length < 4 && (StringUtils.isBlank(telegramToken) && stravaClientId == 0 && StringUtils.isBlank(stravaClientSecret))) {
             logger.warn("Please define required configuration variables");
             throw new IllegalArgumentException("Please define required configuration variables");
         }
 
         if (StringUtils.isBlank(telegramToken)) telegramToken = args[0];
-        if (StringUtils.isBlank(stravaClientSecret)) stravaClientSecret = args[1];
-        if (stravaClientId == 0) stravaClientId = Integer.parseInt(args[2]);
+        if (StringUtils.isBlank(telegramBotName)) telegramBotName = args[1];
+        if (StringUtils.isBlank(stravaClientSecret)) stravaClientSecret = args[2];
+        if (stravaClientId == 0) stravaClientId = Integer.parseInt(args[3]);
         if (StringUtils.isBlank(stravaBaseRedirectUrl)) stravaBaseRedirectUrl = "http://localhost:8080";
 
         if (StringUtils.isBlank(telegramToken)) {
             logger.warn("doesn't define telegram token");
             throw new IllegalArgumentException("doesn't define telegram token");
+        }
+        if (StringUtils.isBlank(telegramBotName)) {
+            logger.warn("doesn't define telegram bot name");
+            throw new IllegalArgumentException("doesn't define telegram bot name");
         }
         if (StringUtils.isBlank(stravaClientSecret)) {
             logger.warn("doesn't define strava client secret");
@@ -69,16 +80,16 @@ public class Main {
         String poolSize = System.getenv("MAXIMUM_POOL_SIZE");
         if (StringUtils.isNotBlank(poolSize)) maximumPoolSize = Integer.parseInt(poolSize);
 
-        if (args.length < 8 && (StringUtils.isBlank(driverName) && StringUtils.isBlank(jdbcUrl) && StringUtils.isBlank(userName)
+        if (args.length < 9 && (StringUtils.isBlank(driverName) && StringUtils.isBlank(jdbcUrl) && StringUtils.isBlank(userName)
                 && StringUtils.isBlank(password) && StringUtils.isNotBlank(poolSize))) {
             logger.warn("Please define required DATABASE configuration variables");
             throw new IllegalArgumentException("Please define required DATABASE configuration variables");
         }
-        if (StringUtils.isBlank(driverName)) driverName = args[3];
-        if (StringUtils.isBlank(jdbcUrl)) jdbcUrl = args[4];
-        if (StringUtils.isBlank(userName)) userName = args[5];
-        if (StringUtils.isBlank(password)) password = args[6];
-        if (maximumPoolSize == 0) maximumPoolSize = Integer.parseInt(args[7]);
+        if (StringUtils.isBlank(driverName)) driverName = args[4];
+        if (StringUtils.isBlank(jdbcUrl)) jdbcUrl = args[5];
+        if (StringUtils.isBlank(userName)) userName = args[6];
+        if (StringUtils.isBlank(password)) password = args[7];
+        if (maximumPoolSize == 0) maximumPoolSize = Integer.parseInt(args[8]);
         if (StringUtils.isBlank(driverName)) {
             logger.warn("doesn't define DATABASE driver name");
             throw new IllegalArgumentException("doesn't define DATABASE driver name");
@@ -103,7 +114,6 @@ public class Main {
         HikariDataSource dataSource = getHikariDataSource(driverName, jdbcUrl, userName, password, maximumPoolSize);
         SpringLiquibase liquibase = getLiquibase(dataSource);
 
-
         try {
             liquibase.afterPropertiesSet();
         } catch (LiquibaseException e) {
@@ -120,10 +130,12 @@ public class Main {
 
         DbStorage dbStorage = DbStorage.getInstance(namedParameterJdbcTemplate, transactionTemplate);
 
-        TelegramClient telegramClient = new TelegramClient(telegramToken, stravaClientId, stravaBaseRedirectUrl);
+        TelegramClient telegramClient = new TelegramClient(telegramToken);
         StravaClient stravaClient = new StravaClient(stravaClientId, stravaClientSecret, dbStorage);
         StravaService stravaService = new StravaService(telegramClient, dbStorage, stravaClient);
         BotHttpServer botHttpServer = new BotHttpServer(stravaService, port);
+        TelegramService telegramService = new TelegramService(dbStorage, stravaService, stravaClientId, stravaBaseRedirectUrl);
+        UpdateHandlerImpl updateHandlerImpl = new UpdateHandlerImpl();
 
         // запуск сервера
         logger.debug("server start");
@@ -145,12 +157,14 @@ public class Main {
         logger.info("started http server");
 
         // инициализация и запуск обработчика запросов telegram api
-        TelegramService telegramService = new TelegramService(telegramClient, dbStorage, stravaService);
-        logger.debug("starting telegram bot handler");
+        ApiContextInitializer.init();
+        TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
+        PoolingBot poolingBot = new PoolingBot(telegramToken, telegramBotName, updateHandlerImpl, telegramService);
         try {
-            telegramService.sendGet();
-        } catch (Throwable e) {
-            logger.error("telegramService dosn't work", e);
+            telegramBotsApi.registerBot(poolingBot);
+        } catch (
+                TelegramApiRequestException e) {
+            logger.warn("Telegram bot api request exception", e);
         }
 
     }
@@ -179,7 +193,7 @@ public class Main {
     private static TransactionTemplate getTransactionTemplate(DataSourceTransactionManager transactionManager) {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
-        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
         transactionTemplate.setName("TransactionDeleteUser");
 
         return transactionTemplate;

@@ -1,0 +1,5 @@
+package ru.artak.service;
+
+public enum FindIntervalType {
+    CURRENTWEEKDISTANCE, LASTWEEKDISTANCE, CURRENTMONTHDISTANCE, LASTMONTHDISTANCE;
+}
