@@ -4,17 +4,22 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ru.artak.client.strava.StravaClient;
 import ru.artak.client.strava.StravaCredential;
-import ru.artak.client.strava.model.ResultActivities;
 import ru.artak.client.strava.StravaOauthResp;
-import ru.artak.storage.Storage;
+import ru.artak.client.strava.model.ResultActivities;
 import ru.artak.client.telegram.TelegramClient;
+import ru.artak.storage.Storage;
 import ru.artak.utils.DateUtils;
 import ru.artak.utils.UtilsFormatKm;
 
 import java.io.IOException;
-import java.time.*;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 
 public class StravaService {
@@ -40,7 +45,6 @@ public class StravaService {
         logger.info("saved credentials for user - {}", chatId);
         telegramClient.sendSimpleText(chatId, AUTHORIZED_TEXT);
     }
-
 
     private StravaCredential getCredentials(String authorizationCode) {
         try {
@@ -133,19 +137,16 @@ public class StravaService {
     }
 
     private DistanceInterval getDistanceInterval(FindIntervalType interval) {
-
+        LocalDate now = LocalDate.now();
+    
         switch (interval) {
             case CURRENTWEEKDISTANCE:
-
-                return DateUtils.getWeekRange(FindIntervalType.CURRENTWEEKDISTANCE);
+                return DateUtils.getWeekRange(now, FindIntervalType.CURRENTWEEKDISTANCE);
             case LASTWEEKDISTANCE:
-
-                return DateUtils.getWeekRange(FindIntervalType.LASTWEEKDISTANCE);
+                return DateUtils.getWeekRange(now, FindIntervalType.LASTWEEKDISTANCE);
             case CURRENTMONTHDISTANCE:
-
                 return DateUtils.getMonthRange(FindIntervalType.CURRENTMONTHDISTANCE);
             case LASTMONTHDISTANCE:
-
                 return DateUtils.getMonthRange(FindIntervalType.LASTMONTHDISTANCE);
         }
         return null;

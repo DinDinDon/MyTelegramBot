@@ -51,7 +51,6 @@ public class TelegramService implements UpdateHandler {
 
     @Override
     public BotApiMethod executeUpdate(Update update) {
-
         if (update.hasMessage()) {
             logger.debug("received a new request in telegram from user - {}", update.getMessage().getChatId());
             switch (update.getMessage().getText()) {
@@ -106,17 +105,17 @@ public class TelegramService implements UpdateHandler {
     }
 
     private SendMessage handleAuthCommand(Long chatId) {
-        final UUID randomClientID = UUID.randomUUID();
-        logger.debug("received a request /auth for user - {}, randomClientID - {}", chatId, randomClientID);
+        final UUID state = UUID.randomUUID();
+        logger.debug("received a request /auth for user - {}, randomClientID - {}", chatId, state);
         StravaCredential credential = storage.getStravaCredentials(chatId);
 
         if (credential != null && !credential.isStatus()) {
             return (new SendMessage().setChatId(chatId).setText(whenUserAlreadyAuthorized));
         }
-        storage.saveStateForUser(randomClientID, chatId);
-        logger.debug("sent to user - {}, randomClientID - {} Oauth link", chatId, randomClientID);
+        storage.saveStateForUser(state, chatId);
+        logger.debug("sent to user - {}, randomClientID - {} Oauth link", chatId, state);
         return (new SendMessage().setChatId(chatId).setText(StravaClient.STRAVA_OAUTH_ADDRESS + "authorize?client_id=" +
-                stravaClientId + "&state=" + randomClientID + "&response_type=code&redirect_uri=" + baseRedirectUrl +
+                stravaClientId + "&state=" + state + "&response_type=code&redirect_uri=" + baseRedirectUrl +
                 "/exchange_token&approval_prompt=force&&scope=activity:read"));
     }
 
